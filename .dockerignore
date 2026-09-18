@@ -1,0 +1,15 @@
+# The package is sent to image builds as a named build context (`COPY --from=
+# cyberwave-contracts . /cyberwave-contracts`), which copies the whole directory.
+# Without this, a local `make models` or `python -m build` puts its output in the
+# context, and BuildKit keys the COPY layer on content -- so build artifacts that
+# change on every local run invalidate the pip resolve below it, and `build/lib`
+# ships a stale second copy of the package into the image.
+#
+# Mirrors .gitignore; keep the two in step.
+build/
+dist/
+*.egg-info/
+.venv-smoke/
+__pycache__/
+.ruff_cache/
+.pytest_cache/

@@ -1,0 +1,7 @@
+# Build output. `make models` writes into cyberwave_contracts/models, which IS
+# committed; these are the artifacts of `python -m build` and are not.
+build/
+dist/
+*.egg-info/
+.venv-smoke/
+__pycache__/

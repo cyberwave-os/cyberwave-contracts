@@ -1,0 +1,135 @@
+# Index of every payload contract in the monorepo: who owns it, which tree owns its
+# shape, and every place the definition is copied. The JSON Schemas in
+# the schemas/ directory beside this file each describe one payload; this file describes
+# the contracts themselves, which no schema can. Those facts were previously
+# hardcoded in the sync test and in python-sdk-gen.sh, and copies named in neither
+# drifted unwatched.
+#
+# This file and the schemas beside it ship inside the cyberwave-contracts package.
+# The SDK, the edge components and anyone writing a driver all read them, and none
+# of those can import a Django app directory. The backend is one consumer among
+# several -- it serves them over the public contracts API, which is a use, not
+# ownership.
+#
+# `schema` paths are package-relative and resolved from this module. `mirrors`
+# paths are monorepo-relative and are NOT resolved by the package: a published
+# wheel has no checkout to resolve them against. They are data, and the repo's own
+# tests resolve and verify them. A schema with no entry below fails
+# cyberwave-backend/src/lib/tests/test_contract_manifest.py.
+#
+# Which tree may own a shape is a rule, not a preference, and it is directional:
+#
+#   protobuf     STATE -- what a robot, driver or simulator reports. Defined in
+#                common/protobuf/proto, named by `proto_source`.
+#   json_schema  COMMANDS AND PLANS -- what the platform issues. Defined in
+#                this package's schemas/, named by `schema`.
+#   python       Shapes no JSON Schema defines, named by `python_source`. The
+#                escape hatch, not a third tier -- and not a synonym for "lives
+#                outside the backend": it covers both a dataclass on the edge
+#                runtime and a backend validator the SDK mirrors.
+#
+# Each owner names its definition with its own key and no other, so an entry can
+# never be ambiguous about which copy is the source. `python_source` is the one
+# exception: any entry may carry it, because a proto- or schema-owned contract
+# still has a backend reader, and only the `python` owner treats it as the shape.
+# cyberwave_contracts/manifest.py::validate_ownership enforces this.
+#
+# schema        -- the definition when schema_owner is json_schema; omit otherwise
+# proto_source  -- the definition when schema_owner is protobuf
+# schema_owner  -- json_schema | protobuf | python
+# sync          -- generated   rewritten from python_source by a script
+#                  field_names hand-maintained; CI checks required field names only
+#                  unchecked   hand-maintained; nothing verifies it
+
+version: 1
+
+contracts:
+  - id: locomotion.velocity_command.v1
+    owner: backend
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/locomotion.velocity_command.v1.schema.json
+    python_source: cyberwave-backend/src/lib/locomotion_contracts.py
+    mirrors:
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/locomotion_contracts.py
+        language: python
+        sync: generated
+      - path: cyberwave-edge-nodes/cyberwave-edge-common/cyberwave_edge_common/locomotion_contracts.py
+        language: python
+        # Byte-identical to python_source apart from an added header line, by hand.
+        sync: unchecked
+      - path: cyberwave-sdks/cyberwave-cpp/include/cyberwave/locomotion_contracts.h
+        language: cpp
+        sync: field_names
+
+  - id: aerial.velocity_command.v1
+    owner: backend
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/aerial.velocity_command.v1.schema.json
+    # Shares a module with the locomotion contract; the C++ header covers only
+    # locomotion, so this contract has no cross-language check at all.
+    python_source: cyberwave-backend/src/lib/locomotion_contracts.py
+    mirrors:
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/locomotion_contracts.py
+        language: python
+        sync: generated
+
+  - id: policy_artifact_manifest.v1
+    owner: backend
+    schema_owner: json_schema
+    # Spells its identity key `version`, not `contract`. The value is a contract id,
+    # not a version; renaming it is a wire change both readers below would drop
+    # silently, so it needs a dual-read window rather than a rename in place.
+    id_field: version
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/policy_artifact_manifest.v1.schema.json
+    python_source: cyberwave-backend/src/lib/mlmodel_artifact_manifest.py
+    mirrors:
+      - path: cyberwave-sim/artifacts.py
+        language: python
+        # Reads the const from a contracts/ directory that exists in no layout; the
+        # bare except then returns a hardcoded literal, so the schema read is dead.
+        sync: unchecked
+
+  - id: simulation_policy_manifest.v1
+    owner: backend
+    schema_owner: json_schema
+    id_field: version
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/simulation_policy_manifest.v1.schema.json
+    python_source: cyberwave-backend/src/app/services/simulation_policy_manifest.py
+    mirrors:
+      - path: cyberwave-sim/scene/zip_loader.py
+        language: python
+        # Pins the id string only; ignores a manifest whose value does not match.
+        sync: unchecked
+
+  # No JSON Schema: the shape is the validator itself. `validate_actuator_config`
+  # rejects an actuator declaration by cross-field rules -- which fields are
+  # required depends on `effort_model`, and `model_path` is checked for traversal
+  # -- so a schema would restate part of it and silently diverge on the rest.
+  # Indexed anyway: the index answers "who consumes this contract", and the answer
+  # here is five trees, only one of which any drift check watches.
+  - id: control.actuator_lstm.v1
+    owner: backend
+    schema_owner: python
+    id_field: contract
+    python_source: cyberwave-backend/src/lib/actuator_contracts.py
+    mirrors:
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/actuator_contracts.py
+        language: python
+        # Byte-identical to python_source apart from the header, by
+        # python-sdk-gen.sh. Drift is checked by the SDK's own
+        # tests/test_learned_actuator_contract.py.
+        sync: generated
+
+  # The one contract the backend neither defines nor reads, and the reason `owner`
+  # and `schema_owner` exist as keys: its shape is a Python dataclass on the edge
+  # runtime, it has no JSON Schema, and it versions with an integer field rather
+  # than a contract-id const. An index that could not hold it would be an index of
+  # the backend's schema directory, not of the monorepo's contracts.
+  - id: map_bundle.v1
+    owner: edge
+    schema_owner: python
+    id_field: schema_version
+    python_source: cyberwave-edge-runtime/runtime-services/intelligence/common/python/cyberwave_map_bundle/bundle.py
+    mirrors: []

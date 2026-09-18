@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cyberwave-contracts"
+version = "0.1.0"
+description = "Payload and configuration contracts shared by the Cyberwave backend, SDK, and edge components"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Cyberwave Team", email = "info@cyberwave.com" }]
+keywords = ["robotics", "contracts", "json-schema", "pydantic", "cyberwave"]
+
+# Deliberately two, and no more. This package is imported by the backend, the
+# SDK, the edge nodes and the simulator; every dependency added here is added to
+# all of them. Nothing Django, nothing HTTP, nothing that reads the environment.
+dependencies = ["pydantic>=2", "pyyaml>=6.0"]
+
+[project.optional-dependencies]
+# ruff is pinned, not floated: `make models` pipes the generator through
+# `ruff format`, and the CI staleness gate compares the result byte-for-byte
+# against the committed models. A ruff release that changes the formatter would
+# fail that gate on a branch that changed nothing. Bump deliberately, with a
+# `make models` commit in the same change.
+dev = ["pytest>=7.0", "ruff==0.9.9"]
+
+[project.urls]
+Homepage = "https://cyberwave.com"
+Documentation = "https://docs.cyberwave.com"
+
+[tool.setuptools.packages.find]
+include = ["cyberwave_contracts*"]
+
+# The schemas and the index are data the package serves, not build inputs -- a
+# consumer validating offline needs them present in the installed wheel.
+# py.typed is the PEP 561 marker. Without it a type checker ignores this
+# package's annotations entirely and reports `import-not-found` even when the
+# package is installed -- so every consumer of a package whose whole point is
+# typed models would see it as untyped.
+[tool.setuptools.package-data]
+cyberwave_contracts = ["manifest.yml", "py.typed", "schemas/*.schema.json"]
