@@ -12,8 +12,10 @@ Validate a payload you received::
     model = MODELS_BY_CONTRACT_ID["locomotion.velocity_command.v1"]
     command = model.model_validate(payload)   # raises if it does not conform
 
-Every contract payload names itself in a required const field, so a consumer
-never has to infer which contract it is holding from the shape of the fields.
+Complete payload contracts name themselves in a required const field, so a
+consumer never has to infer which contract it is holding from its shape. Overlay
+contracts constrain shared fields on those payloads without adding another wire
+identity field.
 """
 
 from cyberwave_contracts.manifest import (
@@ -36,6 +38,14 @@ from cyberwave_contracts.models import (
     PolicyBindingPolicyConfigNavigationCommandMinimums,
     PolicyBindingPolicyRef,
     SimulationPolicyManifestV1,
+    SourceTypeEnvelopeV1,
+)
+from cyberwave_contracts.source_type import (
+    SOURCE_TYPE_AXES_PATH,
+    SOURCE_TYPE_VALUES,
+    SourceType,
+    load_source_type_axes,
+    source_types_where,
 )
 
 __version__ = "0.1.0"
@@ -44,6 +54,8 @@ __all__ = [
     "MANIFEST_PATH",
     "MODELS_BY_CONTRACT_ID",
     "SCHEMAS_DIR",
+    "SOURCE_TYPE_AXES_PATH",
+    "SOURCE_TYPE_VALUES",
     "SHAPE_OWNERSHIP",
     "AerialVelocityCommandV1",
     "ArtifactFile",
@@ -56,7 +68,11 @@ __all__ = [
     "PolicyBindingPolicyConfigNavigationCommandMinimums",
     "PolicyBindingPolicyRef",
     "SimulationPolicyManifestV1",
+    "SourceType",
+    "SourceTypeEnvelopeV1",
     "__version__",
     "load_contracts",
+    "load_source_type_axes",
+    "source_types_where",
     "validate_ownership",
 ]

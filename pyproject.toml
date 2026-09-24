@@ -39,4 +39,9 @@ include = ["cyberwave_contracts*"]
 # package is installed -- so every consumer of a package whose whole point is
 # typed models would see it as untyped.
 [tool.setuptools.package-data]
-cyberwave_contracts = ["manifest.yml", "py.typed", "schemas/*.schema.json"]
+cyberwave_contracts = [
+    "manifest.yml",
+    "py.typed",
+    "source_type_axes.yml",
+    "schemas/*.schema.json",
+]

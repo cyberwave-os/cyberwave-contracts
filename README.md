@@ -40,6 +40,7 @@ model = MODELS_BY_CONTRACT_ID[payload["contract"]]
 | `cyberwave_contracts.schemas` | the JSON Schemas, usable from any language |
 | `cyberwave_contracts.models` | generated pydantic models, one per schema |
 | `cyberwave_contracts.manifest` | the index: every contract, its owner, and where it is mirrored |
+| `cyberwave_contracts.source_type` | the authoritative decomposition of legacy `source_type` provenance |
 
 The schemas are installed with the package, so validation works offline and
 against a pinned version rather than whatever a server happened to return.
@@ -55,8 +56,28 @@ consumers.
 | `aerial.velocity_command.v1` | the same for free-body / aerial platforms |
 | `policy_artifact_manifest.v1` | the files making up a policy artifact |
 | `simulation_policy_manifest.v1` | policy bindings exported for a simulator |
+| `source_type.envelope.v1` | flat transport overlay requiring `source_type` |
 
 `GET /api/v1/contracts` lists what a given deployment serves.
+
+## Transport envelope
+
+MQTT payloads keep their existing flat JSON shape. The v1 transport envelope
+requires only `source_type` and preserves every domain field beside it:
+
+```python
+from cyberwave_contracts import SourceTypeEnvelopeV1
+
+envelope = SourceTypeEnvelopeV1.model_validate(
+    {"source_type": "tele", "command": "move_forward", "data": {}}
+)
+```
+
+Domain payload models inherit this generated model, so one `payload_schema`
+validation checks both the routing discriminator and topic-specific fields. This
+keeps routing metadata owned by the transport layer without nesting or duplicating
+it in every domain contract. The semantic decomposition remains in
+`source_type_axes.yml` and is checked against the schema vocabulary.
 
 ## Versioning
 

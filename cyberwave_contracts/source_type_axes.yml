@@ -1,0 +1,119 @@
+# The authoritative decomposition of the `source_type` enum.
+#
+# `source_type` is five orthogonal dimensions flattened into one value. This file
+# is the single source for that decomposition; everything else renders it:
+#
+#   - cyberwave-backend/src/lib/tests/test_source_type_predicates.py derives every
+#     membership set in the monorepo from the `gated` axes below and asserts the
+#     hand-written literal in each tree still equals its predicate.
+#   - cyberwave-backend/docs/ROBOT_STATE_CONVENTIONS.md section 17 renders it as
+#     prose. The same test parses that table and fails when the two disagree.
+#
+# It ships in cyberwave-contracts because it is a cross-project wire contract.
+# Consumers load it from the installed package and never depend on a monorepo
+# layout or a backend-owned directory.
+#
+# `gated` is part of the contract, not commentary: a safety predicate may read a
+# gated axis and may not branch on an ungated one. The ungated pair is attribution
+# -- logs, datasets, audit trails.
+#
+# Adding a value here is a wire-contract change. See section 17 "Sequencing" for
+# what has to happen before one ships.
+
+version: 1
+
+axes:
+  direction:
+    gated: true
+    values: [state, command]
+    meaning: >-
+      Is this a report or an instruction? The axis the self-echo guard needs and
+      the one the enum cannot express.
+  substrate:
+    gated: true
+    values: [hardware, sim, scene]
+    meaning: >-
+      Which world this message concerns. `scene` is the twin's committed pose,
+      which an authoring write targets and no plant does.
+  role:
+    gated: true
+    values: [leader, follower]
+    absent: true
+    meaning: >-
+      Position in a leader-follower rig. Read by the observation guard only.
+  producer:
+    gated: false
+    values: [driver, simulator, frontend_teleop, frontend_editor, backend]
+    meaning: >-
+      Which component published it. Attribution, never routing -- the one pair it
+      looks like it separates, teleop vs editor, is separated by `substrate`.
+  initiator:
+    gated: false
+    values: [teleop, ai_policy, navigation, workflow]
+    absent: true
+    applies_to_direction: command
+    meaning: >-
+      Which subsystem asked. Commands only: nobody asks for a measurement, and
+      that asymmetry is what keeps this axis distinct from `direction`.
+
+# One row per shipped enum value. `role` and `initiator` are null when absent;
+# section 17 renders a null role as "--" and a null initiator as "n/a".
+values:
+  edge:
+    direction: state
+    substrate: hardware
+    producer: driver
+    role: null
+    initiator: null
+  edge_leader:
+    direction: state
+    substrate: hardware
+    producer: driver
+    role: leader
+    initiator: null
+  edge_follower:
+    direction: state
+    substrate: hardware
+    producer: driver
+    role: follower
+    initiator: null
+  sim:
+    direction: state
+    substrate: sim
+    producer: simulator
+    role: null
+    initiator: null
+  tele:
+    direction: command
+    substrate: hardware
+    producer: frontend_teleop
+    role: null
+    initiator: teleop
+  sim_tele:
+    direction: command
+    substrate: sim
+    producer: frontend_teleop
+    role: null
+    initiator: teleop
+  edit:
+    direction: command
+    substrate: scene
+    producer: frontend_editor
+    role: null
+    initiator: teleop
+
+# Values that were in the enum and are gone. Reviving one has to be deliberate, so
+# it fails the conformance test first.
+retired:
+  preview: >-
+    The older spelling of `edit`. Never published -- the frontend branch that would
+    have was gated on a viewer mode that stopped existing -- but it outlived the
+    rename inside the backend control-plane sets, where NAVIGATION_SOURCE_TYPES
+    advertised it while rejecting `edit` for the same action. Preview mode is
+    unchanged and now stamps `edit`.
+
+# Combinations the flattened enum cannot say. Recorded so a reader does not mistake
+# them for oversights; section 17 "The harmonization table" explains each.
+unrepresentable:
+  - sim + state + leader
+  - scene + state

@@ -25,6 +25,9 @@ from cyberwave_contracts.models.simulation_policy_manifest_v1 import (
     PolicyBindingPolicyRef,
     SimulationPolicyManifestV1,
 )
+from cyberwave_contracts.models.source_type_envelope_v1 import (
+    SourceTypeEnvelopeV1,
+)
 
 #: Contract id -> its root model. Keyed so a caller can walk the manifest
 #: and find the model for each indexed contract without a second mapping
@@ -34,6 +37,7 @@ MODELS_BY_CONTRACT_ID = {
     "locomotion.velocity_command.v1": LocomotionVelocityCommandV1,
     "policy_artifact_manifest.v1": PolicyArtifactManifestV1,
     "simulation_policy_manifest.v1": SimulationPolicyManifestV1,
+    "source_type.envelope.v1": SourceTypeEnvelopeV1,
 }
 
 __all__ = [
@@ -47,4 +51,5 @@ __all__ = [
     "PolicyBindingPolicyConfigNavigationCommandMinimums",
     "PolicyBindingPolicyRef",
     "SimulationPolicyManifestV1",
+    "SourceTypeEnvelopeV1",
 ]

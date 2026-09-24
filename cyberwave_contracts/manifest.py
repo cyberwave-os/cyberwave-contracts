@@ -42,10 +42,14 @@ MANIFEST_PATH = _PACKAGE_DIR / "manifest.yml"
 #: that has a checkout. Not used to find anything at runtime.
 SCHEMAS_RELATIVE = "cyberwave-contracts/cyberwave_contracts/schemas"
 
-#: Identity key spellings in use. ``version`` is the older spelling on the two
+#: Payload identity key spellings in use. ``version`` is the older spelling on the two
 #: manifest contracts and carries a contract id, not a version; it is listed so a
 #: third spelling cannot appear unnoticed, not because both are equally correct.
 ID_FIELDS = frozenset({"contract", "version", "schema_version"})
+
+#: Payloads identify their complete wire contract. Overlays constrain fields on
+#: another payload and deliberately do not add an identity field to that wire.
+CONTRACT_KINDS = frozenset({"payload", "overlay"})
 
 #: Derived, not restated: an owner exists exactly when it has a rule below. A
 #: second spelling of this list is a way for the two to disagree.
@@ -72,7 +76,7 @@ SHAPE_OWNERSHIP: dict[str, dict[str, Any]] = {
         # serves them over /api/v1/contracts, which is a use, not ownership.
         "trees": (SCHEMAS_RELATIVE,),
         "suffix": ".schema.json",
-        "defines": "commands and plans -- payloads the platform issues",
+        "defines": "commands, plans, and transport overlays defined as JSON Schema",
     },
     "protobuf": {
         "source_key": "proto_source",
@@ -120,9 +124,10 @@ class Contract:
     id: str
     owner: str
     schema_owner: str
-    id_field: str
+    id_field: str | None
     python_source: str | None
     mirrors: tuple[Mirror, ...]
+    kind: str = "payload"
     schema: str | None = None
     proto_source: str | None = None
 
@@ -187,6 +192,7 @@ def load_contracts() -> tuple[Contract, ...]:
     return tuple(
         Contract(
             id=entry["id"],
+            kind=entry.get("kind", "payload"),
             owner=entry["owner"],
             schema_owner=entry["schema_owner"],
             id_field=entry["id_field"],

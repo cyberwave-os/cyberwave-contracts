@@ -44,6 +44,16 @@
 version: 1
 
 contracts:
+  # An overlay constrains fields on another flat payload and therefore does not
+  # add a self-identifying `contract` field to the wire message.
+  - id: source_type.envelope.v1
+    kind: overlay
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/source_type.envelope.v1.schema.json
+    mirrors: []
+
   - id: locomotion.velocity_command.v1
     owner: backend
     schema_owner: json_schema
