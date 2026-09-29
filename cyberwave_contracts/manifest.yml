@@ -113,6 +113,24 @@ contracts:
         # Pins the id string only; ignores a manifest whose value does not match.
         sync: unchecked
 
+  # The reply half of MQTT v5 request/response for twin commands. A JSON Schema
+  # although drivers produce it: it is part of the command plane the platform
+  # defines (every command handler must answer in this one shape), not state a
+  # device reports on its own. The transport rules -- Response Topic shape,
+  # echoed Correlation Data, one reply per request -- are in the schema's
+  # description and in this package's README.
+  - id: twin.command_response.v1
+    owner: backend
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/twin.command_response.v1.schema.json
+    mirrors:
+      - path: cyberwave-edge-runtime/runtime-services/drivers/native/px4/px4_driver/command_response.py
+        language: python
+        # The driver image does not install cyberwave-contracts; its tests
+        # validate the payload it builds against this schema.
+        sync: unchecked
+
   # No JSON Schema: the shape is the validator itself. `validate_actuator_config`
   # rejects an actuator declaration by cross-field rules -- which fields are
   # required depends on `effort_model`, and `model_path` is checked for traversal

@@ -57,6 +57,7 @@ consumers.
 | `policy_artifact_manifest.v1` | the files making up a policy artifact |
 | `simulation_policy_manifest.v1` | policy bindings exported for a simulator |
 | `source_type.envelope.v1` | flat transport overlay requiring `source_type` |
+| `twin.command_response.v1` | the reply to a twin command sent over MQTT v5 request/response |
 
 `GET /api/v1/contracts` lists what a given deployment serves.
 
@@ -105,3 +106,32 @@ to all of them.
 ## License
 
 Apache-2.0
+
+## Command request/response over MQTT v5
+
+A twin command (`{prefix}cyberwave/twin/{twin_uuid}/command`) is fire-and-forget
+over MQTT 3.1.1. Over MQTT v5 a caller can ask for the outcome instead of
+guessing it:
+
+1. **Requester** connects with MQTT v5 and subscribes, for each twin it will
+   command, to its own reply inbox under that twin:
+   `{prefix}cyberwave/twin/{twin_uuid}/command/{client_id}/response`. The broker
+   lets only the client with that client id read it, so other readers of the
+   twin (including `twin/{twin_uuid}/#` subscribers) never see the reply.
+2. It publishes the command with two v5 properties:
+   - **Response Topic** `{prefix}cyberwave/twin/{twin_uuid}/command/{client_id}/response`
+   - **Correlation Data**: opaque bytes, unique per request (e.g. a UUID).
+3. **Handler** (the twin's driver) publishes exactly one
+   `twin.command_response.v1` payload to that Response Topic, QoS 1, echoing the
+   Correlation Data. Publishing there is an ordinary write to the twin, so one
+   twin's driver cannot answer for another; the handler also ignores a Response
+   Topic that is not this twin's reply inbox.
+4. The requester matches the reply by Correlation Data. `status` tells it what
+   happened: `accepted`, `rejected` (refused before reaching the device),
+   `denied` (the device refused, with `reason` and the device's `messages`) or
+   `timeout`.
+
+A request without a Response Topic is handled exactly as before and gets no
+reply, so MQTT 3.1.1 publishers are unaffected. Requesters should still bound
+their wait: a handler that predates this contract never replies.
+

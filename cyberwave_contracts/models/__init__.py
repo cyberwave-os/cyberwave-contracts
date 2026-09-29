@@ -28,6 +28,9 @@ from cyberwave_contracts.models.simulation_policy_manifest_v1 import (
 from cyberwave_contracts.models.source_type_envelope_v1 import (
     SourceTypeEnvelopeV1,
 )
+from cyberwave_contracts.models.twin_command_response_v1 import (
+    TwinCommandResponseV1,
+)
 
 #: Contract id -> its root model. Keyed so a caller can walk the manifest
 #: and find the model for each indexed contract without a second mapping
@@ -38,6 +41,7 @@ MODELS_BY_CONTRACT_ID = {
     "policy_artifact_manifest.v1": PolicyArtifactManifestV1,
     "simulation_policy_manifest.v1": SimulationPolicyManifestV1,
     "source_type.envelope.v1": SourceTypeEnvelopeV1,
+    "twin.command_response.v1": TwinCommandResponseV1,
 }
 
 __all__ = [
@@ -52,4 +56,5 @@ __all__ = [
     "PolicyBindingPolicyRef",
     "SimulationPolicyManifestV1",
     "SourceTypeEnvelopeV1",
+    "TwinCommandResponseV1",
 ]
