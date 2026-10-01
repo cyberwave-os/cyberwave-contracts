@@ -98,12 +98,16 @@ SHAPE_OWNERSHIP: dict[str, dict[str, Any]] = {
 
 SCHEMA_OWNERS = frozenset(SHAPE_OWNERSHIP)
 
-#: How a mirror is kept in step with the definition. The first three describe a
+#: How a mirror is kept in step with the definition. The first two describe a
 #: *copy* and differ only in what verifies it; ``dependency`` describes a consumer
 #: that installs the definition instead of copying it, so there is nothing to
 #: drift and nothing to check. Recording it is still worth it -- the entry is how
 #: you find every consumer of a contract before changing it.
-SYNC_KINDS = frozenset({"generated", "field_names", "unchecked", "dependency"})
+#:
+#: There is no kind for a copy that nothing verifies. There used to be
+#: (``unchecked``); its last three users now import the definition, and leaving
+#: the kind in place would let the next hand copy be recorded instead of fixed.
+SYNC_KINDS = frozenset({"generated", "field_names", "dependency"})
 
 #: Mirrors that copy the definition, and so can drift from it. ``dependency``
 #: mirrors are excluded by construction rather than by exception -- subtracted

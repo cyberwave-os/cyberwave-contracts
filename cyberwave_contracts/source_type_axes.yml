@@ -1,13 +1,11 @@
 # The authoritative decomposition of the `source_type` enum.
 #
 # `source_type` is five orthogonal dimensions flattened into one value. This file
-# is the single source for that decomposition; everything else renders it:
-#
-#   - cyberwave-backend/src/lib/tests/test_source_type_predicates.py derives every
-#     membership set in the monorepo from the `gated` axes below and asserts the
-#     hand-written literal in each tree still equals its predicate.
-#   - cyberwave-backend/docs/ROBOT_STATE_CONVENTIONS.md section 17 renders it as
-#     prose. The same test parses that table and fails when the two disagree.
+# is the single source for that decomposition; everything else renders it. In the
+# Cyberwave monorepo a conformance test derives every membership set (backend,
+# SDK, frontend, edge) from the `gated` axes below and fails when a hand-written
+# literal drifts from its predicate, and the same test checks the prose rendering
+# of this table in the robot-state conventions document.
 #
 # It ships in cyberwave-contracts because it is a cross-project wire contract.
 # Consumers load it from the installed package and never depend on a monorepo
@@ -17,8 +15,8 @@
 # gated axis and may not branch on an ungated one. The ungated pair is attribution
 # -- logs, datasets, audit trails.
 #
-# Adding a value here is a wire-contract change. See section 17 "Sequencing" for
-# what has to happen before one ships.
+# Adding a value here is a wire-contract change: every consumer that switches on
+# `source_type` has to accept the new value before any producer emits it.
 
 version: 1
 
@@ -56,8 +54,7 @@ axes:
       Which subsystem asked. Commands only: nobody asks for a measurement, and
       that asymmetry is what keeps this axis distinct from `direction`.
 
-# One row per shipped enum value. `role` and `initiator` are null when absent;
-# section 17 renders a null role as "--" and a null initiator as "n/a".
+# One row per shipped enum value. `role` and `initiator` are null when absent.
 values:
   edge:
     direction: state
@@ -113,7 +110,7 @@ retired:
     unchanged and now stamps `edit`.
 
 # Combinations the flattened enum cannot say. Recorded so a reader does not mistake
-# them for oversights; section 17 "The harmonization table" explains each.
+# them for oversights.
 unrepresentable:
   - sim + state + leader
   - scene + state

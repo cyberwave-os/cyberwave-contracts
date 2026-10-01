@@ -39,7 +39,10 @@
 # schema_owner  -- json_schema | protobuf | python
 # sync          -- generated   rewritten from python_source by a script
 #                  field_names hand-maintained; CI checks required field names only
-#                  unchecked   hand-maintained; nothing verifies it
+#                  dependency  imports the definition instead of copying it
+#
+# There is deliberately no kind for a copy nothing verifies: every mirror is
+# either generated, checked, or an import. manifest.py rejects anything else.
 
 version: 1
 
@@ -59,15 +62,24 @@ contracts:
     schema_owner: json_schema
     id_field: contract
     schema: cyberwave-contracts/cyberwave_contracts/schemas/locomotion.velocity_command.v1.schema.json
-    python_source: cyberwave-backend/src/lib/locomotion_contracts.py
+    # The behavior (normalising, clamping, building, stopping) is defined here, in
+    # the package itself. Both contracts in this file share the one module.
+    python_source: cyberwave-contracts/cyberwave_contracts/locomotion.py
     mirrors:
+      # Still a copy, not an import: the SDK does not depend on this package yet, and
+      # until it does (declared in its pyproject.toml, package on PyPI) a copy is
+      # what keeps `import cyberwave` working in images that install the SDK alone.
       - path: cyberwave-sdks/cyberwave-python/cyberwave/locomotion_contracts.py
         language: python
         sync: generated
+      - path: cyberwave-backend/src/lib/locomotion_contracts.py
+        language: python
+        # Re-exports the package module, so there is no copy to drift.
+        sync: dependency
       - path: cyberwave-edge-nodes/cyberwave-edge-common/cyberwave_edge_common/locomotion_contracts.py
         language: python
-        # Byte-identical to python_source apart from an added header line, by hand.
-        sync: unchecked
+        # Re-exports the SDK's generated module (the entry above).
+        sync: dependency
       - path: cyberwave-sdks/cyberwave-cpp/include/cyberwave/locomotion_contracts.h
         language: cpp
         sync: field_names
@@ -79,11 +91,14 @@ contracts:
     schema: cyberwave-contracts/cyberwave_contracts/schemas/aerial.velocity_command.v1.schema.json
     # Shares a module with the locomotion contract; the C++ header covers only
     # locomotion, so this contract has no cross-language check at all.
-    python_source: cyberwave-backend/src/lib/locomotion_contracts.py
+    python_source: cyberwave-contracts/cyberwave_contracts/locomotion.py
     mirrors:
       - path: cyberwave-sdks/cyberwave-python/cyberwave/locomotion_contracts.py
         language: python
         sync: generated
+      - path: cyberwave-backend/src/lib/locomotion_contracts.py
+        language: python
+        sync: dependency
 
   - id: policy_artifact_manifest.v1
     owner: backend
@@ -97,9 +112,8 @@ contracts:
     mirrors:
       - path: cyberwave-sim/artifacts.py
         language: python
-        # Reads the const from a contracts/ directory that exists in no layout; the
-        # bare except then returns a hardcoded literal, so the schema read is dead.
-        sync: unchecked
+        # Reads the version const from the installed package's generated model.
+        sync: dependency
 
   - id: simulation_policy_manifest.v1
     owner: backend
@@ -110,8 +124,9 @@ contracts:
     mirrors:
       - path: cyberwave-sim/scene/zip_loader.py
         language: python
-        # Pins the id string only; ignores a manifest whose value does not match.
-        sync: unchecked
+        # Reads the version const from the installed package's generated model and
+        # ignores a manifest whose value does not match.
+        sync: dependency
 
   # The reply half of MQTT v5 request/response for twin commands. A JSON Schema
   # although drivers produce it: it is part of the command plane the platform
@@ -127,9 +142,12 @@ contracts:
     mirrors:
       - path: cyberwave-edge-runtime/runtime-services/drivers/native/px4/px4_driver/command_response.py
         language: python
-        # The driver image does not install cyberwave-contracts; its tests
-        # validate the payload it builds against this schema.
-        sync: unchecked
+        # The driver image does not install cyberwave-contracts, so this is a
+        # hand-maintained producer rather than an import. It is checked, though:
+        # drivers/tests/px4/test_px4_command_response.py validates every payload it
+        # builds against this schema, which covers more than the field names that
+        # `field_names` promises.
+        sync: field_names
 
   # No JSON Schema: the shape is the validator itself. `validate_actuator_config`
   # rejects an actuator declaration by cross-field rules -- which fields are

@@ -8,11 +8,14 @@ defined once as a JSON Schema, and a pydantic model is generated from it — so 
 code that validates a payload cannot drift from the schema that documents it.
 
 ```bash
-pip install cyberwave-contracts   # coming with the first public release
+pip install cyberwave-contracts
 ```
 
-Until then the package is consumed from the monorepo: the backend builds it from
-its build context, and the schemas are served at `GET /api/v1/contracts`.
+This repository is a read-only mirror of the `cyberwave-contracts/` directory of
+the Cyberwave monorepo, published on every production release; issues are
+welcome, but changes land upstream. Inside the monorepo the backend, the edge
+images and the simulator install the package from the checkout rather than from
+PyPI, and the schemas are also served at `GET /api/v1/contracts`.
 
 ## Validating a payload
 
@@ -41,6 +44,7 @@ model = MODELS_BY_CONTRACT_ID[payload["contract"]]
 | `cyberwave_contracts.models` | generated pydantic models, one per schema |
 | `cyberwave_contracts.manifest` | the index: every contract, its owner, and where it is mirrored |
 | `cyberwave_contracts.source_type` | the authoritative decomposition of legacy `source_type` provenance |
+| `cyberwave_contracts.locomotion` | the locomotion and aerial velocity commands: normalising, clamping, building and stopping them (standard library only) |
 
 The schemas are installed with the package, so validation works offline and
 against a pinned version rather than whatever a server happened to return.

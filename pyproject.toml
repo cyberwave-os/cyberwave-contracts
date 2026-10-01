@@ -28,6 +28,7 @@ dev = ["pytest>=7.0", "ruff==0.9.9"]
 [project.urls]
 Homepage = "https://cyberwave.com"
 Documentation = "https://docs.cyberwave.com"
+Repository = "https://github.com/cyberwave-os/cyberwave-contracts"
 
 [tool.setuptools.packages.find]
 include = ["cyberwave_contracts*"]
