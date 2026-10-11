@@ -50,9 +50,10 @@ def test_assignment_scanner_ignores_comparisons(tmp_path: Path) -> None:
     assert monitor._assignments(source) == {"SOURCE_TYPE_SIM_TELE": "sim_tele"}
 
 
-#: The real ledger is empty; these exercise the exemption mechanics with a
-#: stand-in entry so emptying it does not also stop testing how it works.
-_SAMPLE_LEDGER = (("common/protobuf/proto/common.proto", "example divergence"),)
+#: A stand-in ledger. These tests exercise the exemption mechanics, which have to
+#: keep working whether or not the repository currently has a divergence to
+#: excuse -- reading the real ledger made them vacuous the moment it emptied.
+_SAMPLE_LEDGER = (("consumer.py", "example divergence"),)
 
 
 @pytest.fixture
@@ -61,7 +62,10 @@ def sample_ledger(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_the_ledger_is_empty() -> None:
-    """Every known divergence is retired; a new entry is a decision, not a default."""
+    """The PREVIEW exemptions retired with the enums that carried them.
+
+    A new entry is a decision, not a default.
+    """
     assert monitor.KNOWN_DIVERGENCE == ()
 
 
@@ -85,7 +89,7 @@ def test_a_ledger_entry_that_matches_nothing_blocks() -> None:
     blocking, exempt = monitor.partition([])
 
     assert exempt == []
-    assert len(blocking) == len(monitor.KNOWN_DIVERGENCE)
+    assert len(blocking) == len(_SAMPLE_LEDGER)
     assert all("no longer applies" in f.message for f in blocking)
     assert monitor.exit_code(blocking, strict=True) == 1
 
@@ -94,7 +98,7 @@ def test_a_ledger_entry_that_matches_nothing_blocks() -> None:
 def test_drift_outside_the_ledger_blocks() -> None:
     finding = monitor.Finding(monitor.REPO_ROOT / "consumer.py", "example drift")
 
-    blocking, _ = monitor.partition([finding, *_ledger_findings()])
+    blocking, _ = monitor.partition([finding])
 
     assert finding in blocking
     assert monitor.exit_code(blocking, strict=True) == 1
