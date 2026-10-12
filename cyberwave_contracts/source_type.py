@@ -10,7 +10,7 @@ from __future__ import annotations
 from copy import deepcopy
 from functools import cache
 from pathlib import Path
-from typing import Any, Literal, get_args
+from typing import Any, Final, Literal, get_args
 
 import yaml
 
@@ -27,6 +27,17 @@ SourceType = Literal[
 #: The seven values, in wire-table order. Derived rather than restated so the
 #: ``Literal`` and the tuple cannot disagree.
 SOURCE_TYPE_VALUES: tuple[SourceType, ...] = get_args(SourceType)
+
+#: One named constant per value, for consumers that compare against a single
+#: source type. Written out as literals so grep and static checkers see them; a
+#: package test checks they cover exactly ``SOURCE_TYPE_VALUES``.
+SOURCE_TYPE_EDGE: Final = "edge"
+SOURCE_TYPE_EDGE_LEADER: Final = "edge_leader"
+SOURCE_TYPE_EDGE_FOLLOWER: Final = "edge_follower"
+SOURCE_TYPE_TELE: Final = "tele"
+SOURCE_TYPE_EDIT: Final = "edit"
+SOURCE_TYPE_SIM: Final = "sim"
+SOURCE_TYPE_SIM_TELE: Final = "sim_tele"
 
 SOURCE_TYPE_AXES_PATH = Path(__file__).resolve().parent / "source_type_axes.yml"
 

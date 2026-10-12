@@ -42,19 +42,33 @@ from cyberwave_contracts.models import (
 )
 from cyberwave_contracts.source_type import (
     SOURCE_TYPE_AXES_PATH,
+    SOURCE_TYPE_EDGE,
+    SOURCE_TYPE_EDGE_FOLLOWER,
+    SOURCE_TYPE_EDGE_LEADER,
+    SOURCE_TYPE_EDIT,
+    SOURCE_TYPE_SIM,
+    SOURCE_TYPE_SIM_TELE,
+    SOURCE_TYPE_TELE,
     SOURCE_TYPE_VALUES,
     SourceType,
     load_source_type_axes,
     source_types_where,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "MANIFEST_PATH",
     "MODELS_BY_CONTRACT_ID",
     "SCHEMAS_DIR",
     "SOURCE_TYPE_AXES_PATH",
+    "SOURCE_TYPE_EDGE",
+    "SOURCE_TYPE_EDGE_FOLLOWER",
+    "SOURCE_TYPE_EDGE_LEADER",
+    "SOURCE_TYPE_EDIT",
+    "SOURCE_TYPE_SIM",
+    "SOURCE_TYPE_SIM_TELE",
+    "SOURCE_TYPE_TELE",
     "SOURCE_TYPE_VALUES",
     "SHAPE_OWNERSHIP",
     "AerialVelocityCommandV1",

@@ -97,3 +97,15 @@ def test_source_types_where_separates_absent_role_from_any_role() -> None:
     assert source_types_where(
         substrate="hardware", direction="state", role_not="leader"
     ) == {"edge", "edge_follower"}
+
+
+def test_named_constants_cover_exactly_the_vocabulary() -> None:
+    import cyberwave_contracts
+
+    named = {
+        name: value
+        for name, value in vars(cyberwave_contracts).items()
+        if name.startswith("SOURCE_TYPE_") and isinstance(value, str)
+    }
+    assert named == {f"SOURCE_TYPE_{v.upper()}": v for v in SOURCE_TYPE_VALUES}
+    assert set(named) <= set(cyberwave_contracts.__all__)
