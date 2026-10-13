@@ -34,6 +34,9 @@
 # still has a backend reader, and only the `python` owner treats it as the shape.
 # cyberwave_contracts/manifest.py::validate_ownership enforces this.
 #
+# kind          -- payload (the default; names itself in id_field), overlay or
+#                  topic (identified by its MQTT topic; id_field null). See
+#                  CONTRACT_KINDS in manifest.py.
 # schema        -- the definition when schema_owner is json_schema; omit otherwise
 # proto_source  -- the definition when schema_owner is protobuf
 # schema_owner  -- json_schema | protobuf | python
@@ -100,6 +103,22 @@ contracts:
         language: python
         sync: dependency
 
+  # A flight plan as the operator states it. The vehicle's envelope is not part
+  # of it (it comes from the twin's capabilities), and feasibility is decided by
+  # the backend's flight-plan validation, which reads every plan through the
+  # generated model before its own per-type rules.
+  - id: aerial.mission.v1
+    owner: backend
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/aerial.mission.v1.schema.json
+    python_source: cyberwave-backend/src/app/services/flight_plans/mission.py
+    mirrors:
+      - path: cyberwave-backend/src/app/services/flight_plans/mission.py
+        language: python
+        # Validates with AerialMissionV1 from the installed package.
+        sync: dependency
+
   - id: policy_artifact_manifest.v1
     owner: backend
     schema_owner: json_schema
@@ -140,13 +159,98 @@ contracts:
     id_field: contract
     schema: cyberwave-contracts/cyberwave_contracts/schemas/twin.command_response.v1.schema.json
     mirrors:
-      - path: cyberwave-edge-runtime/runtime-services/drivers/native/px4/px4_driver/command_response.py
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/mqtt/command_response.py
         language: python
-        # The driver image does not install cyberwave-contracts, so this is a
-        # hand-maintained producer rather than an import. It is checked, though:
-        # drivers/tests/px4/test_px4_command_response.py validates every payload it
-        # builds against this schema, which covers more than the field names that
-        # `field_names` promises.
+        # The SDK's producer (build_command_response), which every driver uses:
+        # BaseDriver's CommandRequest and the aerial drivers (PX4, Vector
+        # Guardian), whose images install the in-tree SDK. Neither the SDK nor
+        # the driver images install cyberwave-contracts, so this is a
+        # hand-maintained producer rather than an import. It is checked,
+        # though: drivers/tests/px4/test_px4_command_response.py and
+        # tests/guardian/test_guardian_gateway.py validate the payloads it builds
+        # for them against this schema, which covers more than the field names
+        # that `field_names` promises.
+        sync: field_names
+
+  # Flat twin telemetry an aircraft driver publishes. These describe state, which
+  # SHAPE_OWNERSHIP assigns to common/protobuf; they are JSON Schemas anyway
+  # because the wire is JSON on the legacy flat v0 topics, not the protobuf
+  # `state/sensors` channel of common/protobuf/README.md, and no proto message
+  # describes them. When drivers move to that channel these are superseded rather
+  # than re-owned.
+  #
+  # kind: topic -- the payload is identified by its topic (the schema's
+  # x-mqtt-topic), not by a contract field. Deployed publishers, including an
+  # Android app, send none, and requiring one would be a v2 nobody emits.
+  #
+  # The driver mirrors are hand-maintained producers (each driver image builds
+  # from its own directory and installs no contracts package). They are checked
+  # by validating every payload they build against the schema, which covers more
+  # than the field names that `field_names` promises.
+  - id: twin.flight_controller.v1
+    kind: topic
+    owner: backend
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/twin.flight_controller.v1.schema.json
+    mirrors:
+      - path: cyberwave-backend/src/lib/mqtt_schemas.py
+        language: python
+        # TwinFlightControllerPayload subclasses the generated model.
+        sync: dependency
+      - path: cyberwave-edge-runtime/runtime-services/drivers/native/px4/px4_driver/flight_controller.py
+        language: python
+        # Checked by drivers/tests/px4/test_px4_contracts.py.
+        sync: field_names
+      - path: cyberwave-edge-runtime/runtime-services/drivers/native/vector-robotics/guardian/guardian_driver/telemetry.py
+        language: python
+        # Checked by drivers/tests/guardian/test_guardian_contracts.py.
+        sync: field_names
+
+  - id: twin.flight_state.v1
+    kind: topic
+    owner: backend
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/twin.flight_state.v1.schema.json
+    # The consumer: persists the report, gated on source_type.
+    python_source: cyberwave-backend/src/app/mqtt_consumer.py
+    mirrors:
+      - path: cyberwave-backend/src/lib/mqtt_schemas.py
+        language: python
+        # TwinFlightStatePayload subclasses the generated model.
+        sync: dependency
+      - path: cyberwave-edge-runtime/runtime-services/drivers/native/vector-robotics/guardian/guardian_driver/telemetry.py
+        language: python
+        # Checked by drivers/tests/guardian/test_guardian_contracts.py.
+        sync: field_names
+      - path: cyberwave-edge-nodes/cyberwave-edge-dji-mini-android/app/src/main/kotlin/com/cyberwave/edge/dji/dji/TelemetryPublisher.kt
+        language: kotlin
+        # Checked by cyberwave-backend/src/lib/tests/test_contract_manifest.py,
+        # which requires every required field name to appear in the publisher.
+        sync: field_names
+
+  - id: twin.battery.v1
+    kind: topic
+    owner: backend
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/twin.battery.v1.schema.json
+    # The consumer. Looser than the schema in one declared way: it also reads
+    # `percent` when `percentage` is absent.
+    python_source: cyberwave-backend/src/app/mqtt_consumer.py
+    mirrors:
+      - path: cyberwave-backend/src/lib/mqtt_schemas.py
+        language: python
+        # TwinBatteryPayload subclasses the generated model.
+        sync: dependency
+      - path: cyberwave-edge-runtime/runtime-services/drivers/native/vector-robotics/guardian/guardian_driver/telemetry.py
+        language: python
+        # Checked by drivers/tests/guardian/test_guardian_contracts.py.
+        sync: field_names
+      - path: cyberwave-edge-nodes/cyberwave-edge-dji-mini-android/app/src/main/kotlin/com/cyberwave/edge/dji/dji/TelemetryPublisher.kt
+        language: kotlin
+        # Checked like the flight_state entry above.
         sync: field_names
 
   # No JSON Schema: the shape is the validator itself. `validate_actuator_config`

@@ -15,7 +15,9 @@ Validate a payload you received::
 Complete payload contracts name themselves in a required const field, so a
 consumer never has to infer which contract it is holding from its shape. Overlay
 contracts constrain shared fields on those payloads without adding another wire
-identity field.
+identity field. Topic contracts -- the flat twin telemetry topics, whose deployed
+publishers predate the rule -- are identified by the MQTT topic their schema names
+in ``x-mqtt-topic``.
 """
 
 from cyberwave_contracts.manifest import (

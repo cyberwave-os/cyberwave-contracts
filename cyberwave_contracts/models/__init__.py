@@ -8,6 +8,11 @@ the hand-written checks against these and fails on any undeclared disagreement.
 Import the model, never re-implement the rule it carries.
 """
 
+from cyberwave_contracts.models.aerial_mission_v1 import (
+    AerialMissionV1,
+    MissionHome,
+    MissionItem,
+)
 from cyberwave_contracts.models.aerial_velocity_command_v1 import (
     AerialVelocityCommandV1,
 )
@@ -28,27 +33,47 @@ from cyberwave_contracts.models.simulation_policy_manifest_v1 import (
 from cyberwave_contracts.models.source_type_envelope_v1 import (
     SourceTypeEnvelopeV1,
 )
+from cyberwave_contracts.models.twin_battery_v1 import (
+    TwinBatteryV1,
+)
 from cyberwave_contracts.models.twin_command_response_v1 import (
     TwinCommandResponseV1,
+)
+from cyberwave_contracts.models.twin_flight_controller_v1 import (
+    TwinFlightControllerV1,
+    TwinFlightControllerV1Home,
+    TwinFlightControllerV1Link,
+    TwinFlightControllerV1Mission,
+    TwinFlightControllerV1StatusTexts,
+)
+from cyberwave_contracts.models.twin_flight_state_v1 import (
+    TwinFlightStateV1,
 )
 
 #: Contract id -> its root model. Keyed so a caller can walk the manifest
 #: and find the model for each indexed contract without a second mapping
 #: to keep in step with it.
 MODELS_BY_CONTRACT_ID = {
+    "aerial.mission.v1": AerialMissionV1,
     "aerial.velocity_command.v1": AerialVelocityCommandV1,
     "locomotion.velocity_command.v1": LocomotionVelocityCommandV1,
     "policy_artifact_manifest.v1": PolicyArtifactManifestV1,
     "simulation_policy_manifest.v1": SimulationPolicyManifestV1,
     "source_type.envelope.v1": SourceTypeEnvelopeV1,
+    "twin.battery.v1": TwinBatteryV1,
     "twin.command_response.v1": TwinCommandResponseV1,
+    "twin.flight_controller.v1": TwinFlightControllerV1,
+    "twin.flight_state.v1": TwinFlightStateV1,
 }
 
 __all__ = [
+    "AerialMissionV1",
     "AerialVelocityCommandV1",
     "ArtifactFile",
     "LocomotionVelocityCommandV1",
     "MODELS_BY_CONTRACT_ID",
+    "MissionHome",
+    "MissionItem",
     "PolicyArtifactManifestV1",
     "PolicyBinding",
     "PolicyBindingPolicyConfig",
@@ -56,5 +81,12 @@ __all__ = [
     "PolicyBindingPolicyRef",
     "SimulationPolicyManifestV1",
     "SourceTypeEnvelopeV1",
+    "TwinBatteryV1",
     "TwinCommandResponseV1",
+    "TwinFlightControllerV1",
+    "TwinFlightControllerV1Home",
+    "TwinFlightControllerV1Link",
+    "TwinFlightControllerV1Mission",
+    "TwinFlightControllerV1StatusTexts",
+    "TwinFlightStateV1",
 ]

@@ -49,7 +49,21 @@ ID_FIELDS = frozenset({"contract", "version", "schema_version"})
 
 #: Payloads identify their complete wire contract. Overlays constrain fields on
 #: another payload and deliberately do not add an identity field to that wire.
-CONTRACT_KINDS = frozenset({"payload", "overlay"})
+#: Topic contracts are complete payloads identified by the MQTT topic they are
+#: published on rather than by a field: the flat twin telemetry topics predate the
+#: identity rule and have deployed publishers (drivers, an Android app) that send
+#: no contract id. Requiring one would be a v2 those publishers do not emit, so
+#: their schemas name the topic in a :data:`TOPIC_ANNOTATION` instead.
+CONTRACT_KINDS = frozenset({"payload", "overlay", "topic"})
+
+#: The kinds whose payload names its own contract in ``id_field``. Every other
+#: kind declares ``id_field: null``.
+SELF_IDENTIFYING_KINDS = frozenset({"payload"})
+
+#: The root schema annotation a ``topic`` contract names its topic with: relative
+#: to the environment prefix, with ``{twin_uuid}``-style placeholders. An ``x-``
+#: key, so validators and the model generator treat it as documentation.
+TOPIC_ANNOTATION = "x-mqtt-topic"
 
 #: Derived, not restated: an owner exists exactly when it has a rule below. A
 #: second spelling of this list is a way for the two to disagree.
