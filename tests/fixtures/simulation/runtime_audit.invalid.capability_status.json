@@ -1,0 +1,34 @@
+{
+  "contract": "simulation.runtime_audit.v1",
+  "workload_uuid": "c0ffee00-0000-4000-8000-000000000001",
+  "run_id": "run-01",
+  "stream_instance_id": "c0ffee00-0000-4000-8000-000000000001",
+  "requested_backend": "isaac",
+  "requested_execution_profile": "isaac-cpu-physics",
+  "reported_backend": "isaac",
+  "execution_profile": "isaac-cpu-physics",
+  "image_digest": "sha256:6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d",
+  "bundle_digest": "sha256:9074dd750291bc4cafc02b7411a153e7f05102596a7e8479c61ee8339bb4e613",
+  "exporter_version": "0.9.0",
+  "extension_lock_digest": "sha256:a973cb5c797cce17a0104424ec84e05a37912e46544ebf47ac0c7aef64f30ef1",
+  "physics": {
+    "engine": "physx",
+    "variant": "physx-5",
+    "device": "cpu"
+  },
+  "gpu": {
+    "name": "NVIDIA L4",
+    "driver": "580.65",
+    "renderer": "RaytracedLighting"
+  },
+  "feature_profile_id": "isaac-cpu-physics.v1",
+  "capabilities": {
+    "state": "yes",
+    "joint_command": "ok",
+    "camera:rgb": "ok"
+  },
+  "ready": true,
+  "mismatches": [],
+  "error_code": null,
+  "reported_at": "2026-10-01T12:00:05Z"
+}

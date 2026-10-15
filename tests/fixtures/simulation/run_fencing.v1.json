@@ -1,0 +1,213 @@
+{
+  "description": "Run-fencing cases for cyberwave_contracts.simulation.accept. current_run is the plant's identity; item is the identity a command/sample/frame carries.",
+  "cases": [
+    {
+      "name": "current command",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "command",
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "expected": {
+        "accepted": true,
+        "reason": "ok"
+      }
+    },
+    {
+      "name": "delayed command from the previous run",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "command",
+        "workload_uuid": "w-1",
+        "run_id": "run-A",
+        "stream_instance_id": "stream-A",
+        "reset_epoch": 3
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "stale_run"
+      }
+    },
+    {
+      "name": "stale publisher on the old stream instance",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "state",
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-A",
+        "reset_epoch": 1
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "stale_stream_instance"
+      }
+    },
+    {
+      "name": "reconnect keeping the current identity",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "state",
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1,
+        "mqtt_client_reconnected": true
+      },
+      "expected": {
+        "accepted": true,
+        "reason": "ok"
+      }
+    },
+    {
+      "name": "reconnect replaying the old run's identity",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "command",
+        "workload_uuid": "w-1",
+        "run_id": "run-A",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "stale_run"
+      }
+    },
+    {
+      "name": "reset with queued output from before the reset",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "state",
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 0
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "stale_reset_epoch"
+      }
+    },
+    {
+      "name": "output claiming a reset that has not happened",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "state",
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 2
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "future_reset_epoch"
+      }
+    },
+    {
+      "name": "old media frame from the previous run",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "camera_frame",
+        "workload_uuid": "w-1",
+        "run_id": "run-A",
+        "stream_instance_id": "stream-A"
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "stale_run"
+      }
+    },
+    {
+      "name": "media frame from another workload",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "camera_frame",
+        "workload_uuid": "w-9",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B"
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "foreign_workload"
+      }
+    },
+    {
+      "name": "item with no run identity",
+      "current_run": {
+        "workload_uuid": "w-1",
+        "run_id": "run-B",
+        "stream_instance_id": "stream-B",
+        "reset_epoch": 1
+      },
+      "item": {
+        "kind": "command",
+        "stream_instance_id": "stream-B"
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "missing_run_identity"
+      }
+    },
+    {
+      "name": "no active run",
+      "current_run": null,
+      "item": {
+        "kind": "command",
+        "run_id": "run-B"
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "no_active_run"
+      }
+    }
+  ]
+}

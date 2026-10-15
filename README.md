@@ -50,6 +50,8 @@ contract. Each of those schemas names its topic in an `x-mqtt-topic` annotation.
 | `cyberwave_contracts.manifest` | the index: every contract, its owner, and where it is mirrored |
 | `cyberwave_contracts.source_type` | the authoritative decomposition of legacy `source_type` provenance |
 | `cyberwave_contracts.locomotion` | the locomotion and aerial velocity commands: normalising, clamping, building and stopping them (standard library only) |
+| `cyberwave_contracts.simulation` | simulation backend identity (`mujoco`, `mujoco_warp`, `isaac`), Isaac execution profiles and the physics engine/device each selects (`isaac-cpu-physics`, `isaac-gpu-physics`, experimental `isaac-newton-physics`), scene-bundle digests and path confinement, runtime-audit readiness checks, the hardware-qualification check (a VRAM floor, no GPU-model list, no driver pin), and run fencing (standard library only) |
+| `cyberwave_contracts.trace` | write, read, validate and diff `simulation.replay_trace.v1` traces; `python -m cyberwave_contracts.trace diff a.jsonl b.jsonl` reports the first divergence (standard library only) |
 
 The schemas are installed with the package, so validation works offline and
 against a pinned version rather than whatever a server happened to return.
@@ -71,6 +73,12 @@ consumers.
 | `twin.flight_controller.v1` | an aircraft's autopilot state: armed, mode, failsafe, link, mission progress, home |
 | `twin.flight_state.v1` | whether an aircraft is airborne, as the aircraft reports it |
 | `twin.battery.v1` | a robot's own battery reading |
+| `simulation.feature_profile.v1` | what a simulation backend/execution profile supports: control modes, state fields, sensors, media, limits, readiness |
+| `simulation.scene_bundle_manifest.v1` | an immutable, content-addressed simulation scene bundle: files, digest, identity map, physics, units, provenance |
+| `simulation.runtime_audit.v1` | what a running simulation runtime reports about itself, and whether it matches what was requested |
+| `simulation.compatibility_attestation.v1` | evidence that an asset/environment passed a backend's conformance suite under an exact runtime key |
+| `simulation.replay_trace.v1` | a JSON Lines replay trace: a header, then command, state, lifecycle, readiness, sensor and camera-frame records |
+| `simulation.hardware_qualification.v1` | the hardware fingerprint an Isaac worker's qualification probe records (RT-core GPU, VRAM, driver, image digest, probe version, time); stored in the node's metadata under `hardware_qualification` |
 
 `GET /api/v1/contracts` lists what a given deployment serves.
 

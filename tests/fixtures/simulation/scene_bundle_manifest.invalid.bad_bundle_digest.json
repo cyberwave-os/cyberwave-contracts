@@ -1,0 +1,148 @@
+{
+  "contract": "simulation.scene_bundle_manifest.v1",
+  "schema_version": 1,
+  "bundle_digest": "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+  "created_at": "2026-10-01T12:00:00Z",
+  "source": {
+    "environment_uuid": "0b8e2d4a-5c6f-4e1a-8d3b-7a9c1e2f3d44",
+    "environment_revision": "r42",
+    "assets": [
+      {
+        "asset_uuid": "a3d5f7b9-1c2e-4f6a-8b0d-9e1f2a3b4c55",
+        "registry_id": "acme/rover",
+        "revision": "r7",
+        "content_hash": "sha256:d59386e0ae435e292fbe0ebcdb954b75ed5fb3922091277cb19f798fc5d50718"
+      }
+    ]
+  },
+  "root_layer": "scene.usda",
+  "files": [
+    {
+      "path": "scene.usda",
+      "sha256": "4f48f7207cebf92638debb5694e4a8677350cf88a9e98e73c6c466b6b1d43890",
+      "size": 2048
+    },
+    {
+      "path": "assets/robot/robot.usda",
+      "sha256": "18d63be10ad544a04a22c944dee01d6d864ec69b797a58edae92e6a44ad8fdbf",
+      "size": 4096
+    },
+    {
+      "path": "assets/robot/meshes/base_link.usdc",
+      "sha256": "d30ca7a7a32bf5772dc5eb2a2e7bd35737eff795ad74f2479b359716b59abdfa",
+      "size": 81920
+    },
+    {
+      "path": "assets/robot/textures/.keep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0
+    }
+  ],
+  "exporter": {
+    "name": "cyberwave-robot-format",
+    "version": "0.9.0",
+    "usd_schema_version": "usd-24.05"
+  },
+  "runtime": {
+    "isaac_version": "5.1.0",
+    "extension_lock_digest": "sha256:a973cb5c797cce17a0104424ec84e05a37912e46544ebf47ac0c7aef64f30ef1"
+  },
+  "physics": {
+    "engine": "physx",
+    "variant": "physx-5",
+    "supported_execution_profiles": [
+      "isaac-cpu-physics",
+      "isaac-gpu-physics"
+    ]
+  },
+  "units": {
+    "meters_per_unit": 1.0,
+    "kilograms_per_unit": 1.0,
+    "up_axis": "Z"
+  },
+  "identity_map": {
+    "twins": [
+      {
+        "twin_uuid": "6f1c7a52-3d1e-4c0b-9a7e-2b9d6f0c1a11",
+        "usd_path": "/World/twin_6f1c7a52"
+      }
+    ],
+    "links": [
+      {
+        "twin_uuid": "6f1c7a52-3d1e-4c0b-9a7e-2b9d6f0c1a11",
+        "link": "base_link",
+        "usd_path": "/World/twin_6f1c7a52/base_link"
+      }
+    ],
+    "joints": [
+      {
+        "twin_uuid": "6f1c7a52-3d1e-4c0b-9a7e-2b9d6f0c1a11",
+        "joint": "wheel_left",
+        "usd_path": "/World/twin_6f1c7a52/joints/wheel_left",
+        "dof_index": 0
+      }
+    ],
+    "sensors": [
+      {
+        "twin_uuid": "6f1c7a52-3d1e-4c0b-9a7e-2b9d6f0c1a11",
+        "sensor_id": "front_camera",
+        "kind": "rgb",
+        "usd_path": "/World/twin_6f1c7a52/base_link/front_camera"
+      }
+    ],
+    "cameras": [
+      {
+        "twin_uuid": "6f1c7a52-3d1e-4c0b-9a7e-2b9d6f0c1a11",
+        "camera_id": "front_camera",
+        "sensor_id": "front_camera",
+        "role": "sensor",
+        "usd_path": "/World/twin_6f1c7a52/base_link/front_camera"
+      }
+    ]
+  },
+  "articulations": [
+    {
+      "twin_uuid": "6f1c7a52-3d1e-4c0b-9a7e-2b9d6f0c1a11",
+      "root_usd_path": "/World/twin_6f1c7a52",
+      "base": "floating"
+    }
+  ],
+  "sensors": [
+    {
+      "sensor_id": "front_camera",
+      "twin_uuid": "6f1c7a52-3d1e-4c0b-9a7e-2b9d6f0c1a11",
+      "kind": "rgb",
+      "fidelity": "rendered",
+      "params": {
+        "width": 640,
+        "height": 480,
+        "fps": 15
+      }
+    }
+  ],
+  "compatibility": {
+    "errors": [],
+    "warnings": [
+      {
+        "code": "mesh_decimated",
+        "message": "collision mesh simplified",
+        "asset_uuid": "a3d5f7b9-1c2e-4f6a-8b0d-9e1f2a3b4c55"
+      }
+    ],
+    "rejected_features": []
+  },
+  "resource_estimate": {
+    "cpu_cores": 4,
+    "ram_mb": 8192,
+    "vram_mb": 6144,
+    "disk_mb": 512,
+    "gpu_required": true
+  },
+  "provenance": {
+    "toolchain": {
+      "cyberwave-robot-format": "0.9.0",
+      "usd-core": "24.5"
+    },
+    "attestation_ref": null
+  }
+}

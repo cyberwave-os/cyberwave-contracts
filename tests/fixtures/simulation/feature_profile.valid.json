@@ -1,0 +1,42 @@
+{
+  "contract": "simulation.feature_profile.v1",
+  "profile_id": "isaac-cpu-physics.v1",
+  "version": 1,
+  "backend": "isaac",
+  "execution_profile": "isaac-cpu-physics",
+  "control_modes": [
+    "joint_position",
+    "base_velocity"
+  ],
+  "state_fields": [
+    "joints.position",
+    "joints.velocity",
+    "joints.effort",
+    "base.pose",
+    "base.twist"
+  ],
+  "sensor_modalities": [
+    "rgb",
+    "depth",
+    "imu",
+    "sim_viewport"
+  ],
+  "media": {
+    "webrtc": true,
+    "recording": false
+  },
+  "limits": {
+    "max_twins": 4,
+    "max_cameras": 2,
+    "max_camera_width": 1280,
+    "max_camera_height": 720,
+    "max_camera_fps": 30,
+    "physics_timestep_s": 0.005
+  },
+  "readiness": {
+    "required_first_samples": [
+      "state",
+      "camera:rgb"
+    ]
+  }
+}

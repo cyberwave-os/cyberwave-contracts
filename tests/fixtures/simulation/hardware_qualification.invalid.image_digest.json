@@ -1,0 +1,22 @@
+{
+  "contract": "simulation.hardware_qualification.v1",
+  "status": "pass",
+  "probe_version": "isaac-qualify/1",
+  "checked_at": "2026-10-03T08:00:00Z",
+  "gpu_model": "NVIDIA GeForce RTX 5070 Ti",
+  "rt_cores": true,
+  "vram_mib": 16303,
+  "driver": "580.178.04",
+  "image_digest": "latest",
+  "execution_profiles": [
+    "isaac-cpu-physics",
+    "isaac-gpu-physics",
+    "isaac-newton-physics"
+  ],
+  "checks": {
+    "vram": "pass",
+    "driver": "pass",
+    "runtime_probe": "pass"
+  },
+  "failures": []
+}

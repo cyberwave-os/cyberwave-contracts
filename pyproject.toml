@@ -22,8 +22,9 @@ dependencies = ["pydantic>=2", "pyyaml>=6.0"]
 # `ruff format`, and the CI staleness gate compares the result byte-for-byte
 # against the committed models. A ruff release that changes the formatter would
 # fail that gate on a branch that changed nothing. Bump deliberately, with a
-# `make models` commit in the same change.
-dev = ["pytest>=7.0", "ruff==0.9.9"]
+# `make models` commit in the same change. jsonschema is test-only: it
+# meta-validates the shipped schemas, which the model generator does not.
+dev = ["jsonschema>=4.18", "pytest>=7.0", "ruff==0.9.9"]
 
 [project.urls]
 Homepage = "https://cyberwave.com"

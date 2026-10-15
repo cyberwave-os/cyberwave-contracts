@@ -76,6 +76,7 @@ _MODELLED_KEYWORDS = frozenset(
         "exclusiveMaximum",
         "anyOf",
         "dependentRequired",
+        "pattern",
     }
 )
 
@@ -92,6 +93,55 @@ def _unmodelled(spec: dict[str, Any], *, root: bool = False) -> list[str]:
     """
     allowed = _MODELLED_KEYWORDS | (_DOCUMENT_KEYWORDS if root else frozenset())
     return sorted(k for k in spec if k not in allowed and not k.startswith("x-"))
+
+
+#: Regex constructs that a JSON Schema validator (ECMA-262) and pydantic's default
+#: Rust ``regex`` engine do not both honour. pydantic silently falls back to
+#: Python's ``re`` for some of them, which is a third dialect; a pattern that
+#: means different things to the schema and the model is the drift this
+#: generator exists to prevent, so these are refused rather than translated.
+_NON_PORTABLE_PATTERN = re.compile(
+    r"\(\?[=!<>]"  # lookaround, atomic group
+    r"|\\[1-9]"  # backreference
+    r"|\\[AZzGbB]"  # \A \Z \z \G anchors, Unicode-sensitive word boundaries
+    r"|\(\?P"  # named group (Python spelling)
+    r"|\(\?[aiLmsux-]*\)"  # inline flags: ECMA-262 has none
+    r"|\\[dDwWsS]"  # ASCII in ECMA-262, Unicode in Python; spell the class out
+    r"|\[\[:"  # POSIX class: Rust only
+)
+
+
+def _check_pattern(prop: str, spec: dict[str, Any]) -> str:
+    """Validate a ``pattern`` the generator is about to emit, and return it.
+
+    Honoured only on a plain string: on an enum, a const or a ``$ref`` there is
+    no ``str`` field to attach it to, and on an array or object it means nothing
+    in JSON Schema. Each of those would be a silently dropped rule.
+    """
+    pattern = spec["pattern"]
+    json_type = spec.get("type")
+    types = json_type if isinstance(json_type, list) else [json_type]
+    if (
+        not isinstance(pattern, str)
+        or [t for t in types if t != "null"] != ["string"]
+        or any(k in spec for k in ("enum", "const", "$ref"))
+    ):
+        raise UnsupportedConstruct(
+            f"{prop}: pattern is modelled only on a plain (optionally nullable) "
+            "string; here it would be dropped."
+        )
+    if _NON_PORTABLE_PATTERN.search(pattern):
+        raise UnsupportedConstruct(
+            f"{prop}: pattern {pattern!r} uses a construct (lookaround, atomic "
+            "group, backreference, named group, inline flag, \\A/\\Z/\\b anchor, "
+            "\\d/\\w/\\s shorthand or POSIX class) that JSON Schema and pydantic "
+            "do not read the same way."
+        )
+    try:
+        re.compile(pattern)
+    except re.error as exc:
+        raise UnsupportedConstruct(f"{prop}: pattern does not compile: {exc}") from exc
+    return pattern
 
 
 def _declares_object_properties(spec: dict[str, Any]) -> bool:
@@ -176,6 +226,11 @@ class Generator:
 
         constraints: list[str] = []
 
+        # Validated before the branches for the same reason as dependentRequired:
+        # an enum/const/$ref branch returns early and would drop it unseen.
+        if "pattern" in spec:
+            constraints.append(f"pattern={_check_pattern(prop, spec)!r}")
+
         if "$ref" in spec:
             return self._ref_target(spec["$ref"]), constraints
 
@@ -206,11 +261,33 @@ class Generator:
             items = spec.get("items")
             if not items:
                 raise UnsupportedConstruct(f"{prop}: array without items")
-            item_type, _ = self._annotation(prop, items, owner)
+            item_type, item_constraints = self._annotation(prop, items, owner)
+            # A bound or pattern on the *items* has no Field to live on -- the
+            # Field belongs to the list. Dropping it would accept items the
+            # schema rejects, so refuse until it is modelled per item.
+            if item_constraints:
+                raise UnsupportedConstruct(
+                    f"{prop}: constraints on array items ({item_constraints}) "
+                    "are not modelled: the Field belongs to the list, and there "
+                    "is no per-item Field to carry them."
+                )
             annotation = f"list[{item_type}]"
         elif json_type == "object":
+            values = spec.get("additionalProperties")
             if spec.get("properties"):
                 annotation = self._emit_object(f"{owner}{_pascal(prop)}", spec)
+            elif isinstance(values, dict):
+                # A map: arbitrary keys, every value one declared shape -- e.g.
+                # joint name -> sample. The value schema is the whole contract
+                # here, so it is modelled rather than widened to Any.
+                value_type, value_constraints = self._annotation(prop, values, owner)
+                if value_constraints:
+                    raise UnsupportedConstruct(
+                        f"{prop}: constraints on map values ({value_constraints}) "
+                        "are not modelled: a map is modelled inline only, and its "
+                        "dict annotation has no per-value Field to carry them."
+                    )
+                annotation = f"dict[str, {value_type}]"
             else:
                 # An object with no declared properties is an open bag. Modelling
                 # it as a class would invent a shape the contract does not state.
@@ -343,6 +420,13 @@ class Generator:
                 "model. Generating anyway would emit a model more permissive "
                 "than the contract it claims to implement."
             )
+        if isinstance(spec.get("additionalProperties"), dict):
+            # Declared properties plus a schema for the rest: pydantic's
+            # extra="allow" would accept any extra value, dropping the rule.
+            raise UnsupportedConstruct(
+                f"{name}: additionalProperties as a schema is modelled only on an "
+                "object without declared properties (a map)."
+            )
         if name in self.emitted:
             return name
         # Reserve the name before recursing so a self-referential $def terminates.
@@ -419,6 +503,17 @@ class Generator:
     def run(self) -> str:
         self.root_class = _pascal(self.contract_id)
         self._emit_object(self.root_class, self.schema, root=True)
+        # A $def the root never references is still part of the contract: a
+        # JSON Lines contract (simulation.replay_trace.v1) describes its header as
+        # the root and each record kind as a $def. Emitted after the root, so a
+        # schema whose $defs are all referenced generates exactly as before.
+        for def_name in sorted(self.defs):
+            # Only a $def that declares object properties becomes a class. An
+            # enum, a scalar or an array $def has no class to emit, and emitting
+            # one anyway yields an empty extra="allow" model that accepts
+            # anything -- the silent widening this generator exists to refuse.
+            if _declares_object_properties(self.defs[def_name]):
+                self._emit_object(_pascal(def_name), self.defs[def_name])
         body = "\n\n".join(self.classes)
 
         # Emit only the imports the output actually uses. Generated code is

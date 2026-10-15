@@ -1,0 +1,73 @@
+{
+  "contract": "simulation.replay_trace.v1",
+  "kind": "header",
+  "trace_version": 2,
+  "run": {
+    "workload_uuid": null,
+    "run_id": "local-run-0001",
+    "stream_instance_id": "local-stream-0001"
+  },
+  "source": "local",
+  "scenario": "rover_square_v1",
+  "bundle_digest": "sha256:9074dd750291bc4cafc02b7411a153e7f05102596a7e8479c61ee8339bb4e613",
+  "asset_revisions": {
+    "a3d5f7b9-1c2e-4f6a-8b0d-9e1f2a3b4c55": "r7"
+  },
+  "runtime": {
+    "backend": "isaac",
+    "execution_profile": "isaac-cpu-physics",
+    "image_digest": "sha256:6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d",
+    "extension_lock_digest": "sha256:a973cb5c797cce17a0104424ec84e05a37912e46544ebf47ac0c7aef64f30ef1",
+    "physics_variant": "physx-5",
+    "runtime_version": "5.1.0"
+  },
+  "renderer": {
+    "name": "RaytracedLighting"
+  },
+  "seed": 7,
+  "timestep": 0.005,
+  "physics": {
+    "gravity": [
+      0.0,
+      0.0,
+      -9.81
+    ],
+    "substeps": 1,
+    "solver_position_iterations": 32,
+    "solver_velocity_iterations": 1,
+    "scene_timestep": 0.005
+  },
+  "duration": 0.02,
+  "initial_state": {
+    "6f1c7a52-3d1e-4c0b-9a7e-2b9d6f0c1a11": {
+      "joints": {
+        "wheel_left": 0.0
+      }
+    }
+  },
+  "tolerances": {
+    "exact_fields": [
+      "readiness.*"
+    ],
+    "numeric": {
+      "state.joints.*.position": {
+        "abs": 0.0001,
+        "rel": 0.0
+      },
+      "state.joints.*.velocity": {
+        "abs": 0.001,
+        "rel": 0.01
+      },
+      "state.base.*": {
+        "abs": 0.0001,
+        "rel": 0.0
+      }
+    },
+    "image": {
+      "camera_frame.checksum": {
+        "metric": "psnr",
+        "min": 40
+      }
+    }
+  }
+}

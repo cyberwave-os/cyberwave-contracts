@@ -253,6 +253,130 @@ contracts:
         # Checked like the flight_state entry above.
         sync: field_names
 
+  # Isaac Sim integration (simulation.*). The platform issues the feature profile,
+  # the scene bundle manifest and the compatibility attestation -- plans and
+  # admission records, squarely json_schema. The runtime audit and the replay
+  # trace are produced by a simulator, yet are JSON Schema rather than protobuf
+  # for the same reason as twin.command_response.v1: neither is streamed state.
+  # The audit is a one-shot admission record the backend validates per workload
+  # against what it requested; the trace is a test artifact file (JSON Lines,
+  # header as the schema root, one $defs entry per record kind) compared offline
+  # by cyberwave_contracts.trace. The behaviour that goes with them -- backend
+  # normalisation, bundle digests, path confinement, readiness and run fencing --
+  # lives once in python_source, standard library only, so the backend, the
+  # Isaac plant and the Isaac cloud node import it instead of re-deriving it.
+  # The consumers listed below import the package (sync: dependency) rather than
+  # copy it; the one hand copy is noted on the feature profile. The Isaac cloud
+  # node and scripts/isaac/contracts_cli.py may run without the package
+  # installed and then load its modules from the checkout by file path, which is
+  # still the one definition, not a copy.
+  - id: simulation.feature_profile.v1
+    owner: contracts
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/simulation.feature_profile.v1.schema.json
+    python_source: cyberwave-contracts/cyberwave_contracts/simulation.py
+    # Not listed: cyberwave-isaac-sim/cyberwave_isaac_sim/profile.py validates a
+    # feature profile by hand and keeps its own copy of the sensor_modalities
+    # enum. No sync kind fits a copy nothing checks, so it is named here instead
+    # until it validates against the schema.
+    mirrors:
+      - path: cyberwave-backend/src/lib/simulation_backends.py
+        language: python
+        # Re-exports the backend and execution-profile identifiers this
+        # profile's enums name.
+        sync: dependency
+
+  - id: simulation.scene_bundle_manifest.v1
+    owner: contracts
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/simulation.scene_bundle_manifest.v1.schema.json
+    python_source: cyberwave-contracts/cyberwave_contracts/simulation.py
+    mirrors:
+      - path: cyberwave-backend/src/app/services/simulation_scene_bundles.py
+        language: python
+        sync: dependency
+      - path: cyberwave-isaac-sim/cyberwave_isaac_sim/bundle.py
+        language: python
+        sync: dependency
+      - path: cyberwave-isaac-sim/cyberwave_isaac_sim/remote_bundle.py
+        language: python
+        sync: dependency
+      - path: scripts/isaac/build_fixture_bundle.py
+        language: python
+        sync: dependency
+      - path: scripts/isaac/contracts_cli.py
+        language: python
+        # Loads the package modules from the checkout by path when the package
+        # is not installed; the same files, not a copy.
+        sync: dependency
+
+  - id: simulation.runtime_audit.v1
+    owner: contracts
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/simulation.runtime_audit.v1.schema.json
+    python_source: cyberwave-contracts/cyberwave_contracts/simulation.py
+    mirrors:
+      - path: cyberwave-isaac-sim/cyberwave_isaac_sim/audit.py
+        language: python
+        sync: dependency
+
+  - id: simulation.compatibility_attestation.v1
+    owner: contracts
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/simulation.compatibility_attestation.v1.schema.json
+    python_source: cyberwave-contracts/cyberwave_contracts/simulation.py
+    # No consumer reads this contract yet. The backend's
+    # SimulationCompatibilityAttestation model stores the same key fields in its
+    # own columns and does not compute key_digest.
+    mirrors: []
+
+  - id: simulation.replay_trace.v1
+    owner: contracts
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/simulation.replay_trace.v1.schema.json
+    python_source: cyberwave-contracts/cyberwave_contracts/trace.py
+    mirrors:
+      - path: cyberwave-isaac-sim/cyberwave_isaac_sim/trace.py
+        language: python
+        sync: dependency
+      - path: cyberwave-isaac-sim/cyberwave_isaac_sim/replay.py
+        language: python
+        sync: dependency
+      - path: scripts/isaac/contracts_cli.py
+        language: python
+        # Loads the package modules from the checkout by path when the package
+        # is not installed; the same files, not a copy.
+        sync: dependency
+
+  # The hardware fingerprint an Isaac worker's qualification probe records
+  # and stores in its cloud-node metadata ("hardware_qualification"). The rule
+  # is a VRAM floor, with no GPU-model list and no driver pin. Admission
+  # (backend) and dispatch (cloud-node scheduler) both decide with
+  # simulation.check_hardware_qualification, so they cannot disagree.
+  - id: simulation.hardware_qualification.v1
+    owner: contracts
+    schema_owner: json_schema
+    id_field: contract
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/simulation.hardware_qualification.v1.schema.json
+    python_source: cyberwave-contracts/cyberwave_contracts/simulation.py
+    mirrors:
+      - path: cyberwave-backend/src/app/services/simulation_compatibility.py
+        language: python
+        sync: dependency
+      - path: cyberwave-backend/src/lib/cloud_node_provision_utils.py
+        language: python
+        sync: dependency
+      - path: cyberwave-cloud-nodes/cyberwave-isaac-sim-node/cyberwave_isaac_sim_node/_contracts.py
+        language: python
+        # Imports the package when installed; otherwise loads simulation.py from
+        # the checkout by file path. Either way the one definition, not a copy.
+        sync: dependency
+
   # No JSON Schema: the shape is the validator itself. `validate_actuator_config`
   # rejects an actuator declaration by cross-field rules -- which fields are
   # required depends on `effort_model`, and `model_path` is checked for traversal

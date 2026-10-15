@@ -1,0 +1,56 @@
+{
+  "contract": "simulation.compatibility_attestation.v1",
+  "attestation_id": "att-0001",
+  "key": {
+    "asset_uuid": "a3d5f7b9-1c2e-4f6a-8b0d-9e1f2a3b4c55",
+    "asset_revision": "r7",
+    "environment_uuid": null,
+    "environment_revision": null,
+    "backend": "isaac",
+    "feature_profile_id": "isaac-cpu-physics.v1",
+    "execution_profile": "isaac-cpu-physics",
+    "bundle_digest": "sha256:9074dd750291bc4cafc02b7411a153e7f05102596a7e8479c61ee8339bb4e613",
+    "exporter_version": "0.9.0",
+    "runtime_version": "5.1.0",
+    "image_digest": "sha256:6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d",
+    "extension_lock_digest": "sha256:a973cb5c797cce17a0104424ec84e05a37912e46544ebf47ac0c7aef64f30ef1",
+    "physics_engine": "physx",
+    "physics_variant": "physx-5",
+    "test_suite_revision": "suite-3",
+    "controller_revision": "ctrl-1",
+    "config_revision": "cfg-1",
+    "resource_envelope": {
+      "cpu_cores": 4,
+      "vram_mb": 6144
+    }
+  },
+  "key_digest": "sha256:20e5979f4fe4b9f896930f1bc6819f5c1dd6cd8f4b38266e80b878aa94279d63",
+  "tests": [
+    {
+      "test_id": "load_bundle",
+      "status": "passed"
+    },
+    {
+      "test_id": "joint_tracking",
+      "status": "passed",
+      "evidence_ref": "evidence/joint_tracking.jsonl"
+    }
+  ],
+  "tolerances": {
+    "state.joints.*.position": {
+      "abs": 0.001,
+      "rel": 0.0
+    }
+  },
+  "evidence": [
+    {
+      "kind": "replay_trace",
+      "location": "evidence/joint_tracking.jsonl",
+      "sha256": "eafe895eb8119e6e5d06463590b2ef81b3651c157d5c8e18f1889186c7fd0ac0"
+    }
+  ],
+  "status": "approved",
+  "issued_at": "2026-10-01T13:00:00Z",
+  "expires_at": null,
+  "reason": null
+}
