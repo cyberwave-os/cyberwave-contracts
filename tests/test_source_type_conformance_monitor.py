@@ -50,6 +50,53 @@ def test_assignment_scanner_ignores_comparisons(tmp_path: Path) -> None:
     assert monitor._assignments(source) == {"SOURCE_TYPE_SIM_TELE": "sim_tele"}
 
 
+def test_rust_const_sets_resolve_names_and_literals(tmp_path: Path) -> None:
+    source = tmp_path / "source_type.rs"
+    source.write_text(
+        'pub const SOURCE_TYPE_SIM: &str = "sim";\n'
+        "pub const ACCEPTED: [&str; 2] = [\n"
+        "    SOURCE_TYPE_SIM,\n"
+        '    "tele",\n'
+        "];\n",
+        encoding="utf-8",
+    )
+
+    assert monitor._literal_set(source, "ACCEPTED", {}) == {"sim", "tele"}
+    with pytest.raises(ValueError, match="was not found"):
+        monitor._literal_set(source, "MISSING", {})
+
+
+def test_media_service_sets_track_the_contract_predicates() -> None:
+    """Drift either way blocks: the SFU's copy must equal the contract predicate."""
+    path = ROOT / "media-service/video-streaming/src/mqtt/source_type.rs"
+    canonical = monitor._canonical_names(monitor._load_contract())
+
+    assert monitor._literal_set(
+        path, "WEBRTC_COMMAND_SOURCE_TYPES", canonical
+    ) == monitor.source_types_where(substrate=("hardware", "sim"), role=None)
+    assert monitor._literal_set(
+        path, "SIM_SUBSTRATE_SOURCE_TYPES", canonical
+    ) == monitor.source_types_where(substrate="sim")
+
+
+def test_a_rust_set_missing_a_value_no_longer_matches(tmp_path: Path) -> None:
+    """The check `collect_findings` runs, on a copy that dropped `sim_tele`."""
+    original = ROOT / "media-service/video-streaming/src/mqtt/source_type.rs"
+    drifted = tmp_path / "source_type.rs"
+    text = original.read_text(encoding="utf-8")
+    last_member = "    SOURCE_TYPE_SIM_TELE,\n];"
+    assert last_member in text
+    drifted.write_text(text.replace(last_member, "];"), encoding="utf-8")
+    canonical = monitor._canonical_names(monitor._load_contract())
+
+    actual = monitor._literal_set(drifted, "WEBRTC_COMMAND_SOURCE_TYPES", canonical)
+
+    assert actual == {"edge", "tele", "sim"}
+    assert actual != monitor.source_types_where(
+        substrate=("hardware", "sim"), role=None
+    )
+
+
 #: A stand-in ledger. These tests exercise the exemption mechanics, which have to
 #: keep working whether or not the repository currently has a divergence to
 #: excuse -- reading the real ledger made them vacuous the moment it emptied.
