@@ -36,7 +36,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from cyberwave_contracts.manifest import SCHEMAS_DIR
+from cyberwave_contracts.manifest import SCHEMAS_DIR, SECTIONS_DIR
 
 _PRIMITIVES = {
     "number": "Number",
@@ -50,13 +50,19 @@ class UnsupportedConstruct(Exception):
     """A schema used something the generator does not model. Never guess."""
 
 
+#: JSON Schema length keywords -> the pydantic constraint that carries them. The
+#: same pydantic name serves strings and lists, so which keywords are legal is
+#: decided by type below, not by this table.
+_STRING_CONSTRAINTS = {"minLength": "min_length", "maxLength": "max_length"}
+_ARRAY_CONSTRAINTS = {"minItems": "min_length", "maxItems": "max_length"}
+
 #: Every keyword the generator actually honours. The type-level guards above stop
 #: a model being *looser* than its schema about types; this stops the same thing
 #: happening one level down, where a dropped ``minLength`` or ``pattern`` is
 #: invisible: the model still validates, just without the rule. Anything not
 #: listed raises rather than being ignored, so widening the generator stays a
 #: deliberate act. Add a keyword here only together with the code that honours it.
-_MODELLED_KEYWORDS = frozenset(
+_MODELLED_KEYWORDS: frozenset[str] = frozenset(
     {
         "type",
         "title",
@@ -75,9 +81,13 @@ _MODELLED_KEYWORDS = frozenset(
         "exclusiveMinimum",
         "exclusiveMaximum",
         "anyOf",
+        "oneOf",
         "dependentRequired",
+        "readOnly",
         "pattern",
     }
+    | _STRING_CONSTRAINTS.keys()
+    | _ARRAY_CONSTRAINTS.keys()
 )
 
 #: Bookkeeping that identifies the document rather than constraining the payload.
@@ -190,6 +200,9 @@ class Generator:
         self.root_class = ""
         self.source = ""
         self.emitted: dict[str, str] = {}
+        #: (class, property) -> the class names a ``oneOf`` property may hold,
+        #: filled while annotating and read when that class's validators are
+        #: emitted.
 
     # -- type mapping ------------------------------------------------------
 
@@ -225,6 +238,17 @@ class Generator:
             )
 
         constraints: list[str] = []
+        # `readOnly` documents that the server, not the client, sets the value. It
+        # constrains no payload, so the model carries it as schema metadata for
+        # the write path to read rather than as a validation rule.
+        if spec.get("readOnly") is True:
+            constraints.append('json_schema_extra={"readOnly": True}')
+        elif "readOnly" in spec:
+            raise UnsupportedConstruct(f"{prop}: readOnly must be true when present")
+        self._refuse_misplaced_lengths(prop, spec)
+
+        if "oneOf" in spec:
+            return self._one_of_annotation(prop, spec, owner), constraints
 
         # Validated before the branches for the same reason as dependentRequired:
         # an enum/const/$ref branch returns early and would drop it unseen.
@@ -261,39 +285,36 @@ class Generator:
             items = spec.get("items")
             if not items:
                 raise UnsupportedConstruct(f"{prop}: array without items")
-            item_type, item_constraints = self._annotation(prop, items, owner)
-            # A bound or pattern on the *items* has no Field to live on -- the
-            # Field belongs to the list. Dropping it would accept items the
-            # schema rejects, so refuse until it is modelled per item.
-            if item_constraints:
-                raise UnsupportedConstruct(
-                    f"{prop}: constraints on array items ({item_constraints}) "
-                    "are not modelled: the Field belongs to the list, and there "
-                    "is no per-item Field to carry them."
-                )
-            annotation = f"list[{item_type}]"
+            annotation = f"list[{self._element(prop, items, owner)}]"
+            constraints.extend(
+                f"{param}={spec[keyword]}"
+                for keyword, param in _ARRAY_CONSTRAINTS.items()
+                if keyword in spec
+            )
         elif json_type == "object":
             values = spec.get("additionalProperties")
             if spec.get("properties"):
                 annotation = self._emit_object(f"{owner}{_pascal(prop)}", spec)
             elif isinstance(values, dict):
-                # A map: arbitrary keys, every value one declared shape -- e.g.
-                # joint name -> sample. The value schema is the whole contract
-                # here, so it is modelled rather than widened to Any.
-                value_type, value_constraints = self._annotation(prop, values, owner)
-                if value_constraints:
-                    raise UnsupportedConstruct(
-                        f"{prop}: constraints on map values ({value_constraints}) "
-                        "are not modelled: a map is modelled inline only, and its "
-                        "dict annotation has no per-value Field to carry them."
-                    )
-                annotation = f"dict[str, {value_type}]"
+                # A map: free keys, typed values -- e.g. settings keyed by a twin
+                # uuid. The value schema is enforced, not widened to Any.
+                annotation = f"dict[str, {self._element(prop, values, owner)}]"
+            elif values is False:
+                raise UnsupportedConstruct(
+                    f"{prop}: a closed object with no properties admits only {{}}"
+                )
             else:
                 # An object with no declared properties is an open bag. Modelling
                 # it as a class would invent a shape the contract does not state.
                 annotation = "dict[str, Any]"
         elif json_type in _PRIMITIVES:
             annotation = _PRIMITIVES[json_type]
+            if json_type == "string":
+                constraints.extend(
+                    f"{param}={spec[keyword]!r}"
+                    for keyword, param in _STRING_CONSTRAINTS.items()
+                    if keyword in spec
+                )
             if "minimum" in spec:
                 constraints.append(f"ge={spec['minimum']}")
             if "maximum" in spec:
@@ -320,6 +341,101 @@ class Generator:
         if nullable:
             annotation = f"{annotation} | None"
         return annotation, constraints
+
+    def _refuse_misplaced_lengths(self, prop: str, spec: dict[str, Any]) -> None:
+        """String keywords on a non-string, array keywords on a non-array.
+
+        pydantic spells both lengths ``min_length``/``max_length``, so a
+        ``minItems`` on a string would quietly become a string-length rule.
+        JSON Schema ignores a keyword that does not apply to the instance type;
+        a generator that honoured it anyway would be stricter than the schema,
+        and one that dropped it would hide an authoring mistake. Refuse.
+        """
+        json_type = spec.get("type")
+        types = set(json_type) if isinstance(json_type, list) else {json_type}
+        for keywords, wanted in (
+            (_STRING_CONSTRAINTS, "string"),
+            (_ARRAY_CONSTRAINTS, "array"),
+        ):
+            misplaced = sorted(k for k in keywords if k in spec)
+            if misplaced and wanted not in types:
+                raise UnsupportedConstruct(
+                    f"{prop}: {misplaced} apply to type {wanted!r}, and this "
+                    f"property is {json_type!r}"
+                )
+
+    def _element(self, prop: str, spec: dict[str, Any], owner: str) -> str:
+        """The annotation for an array item or a map value, constraints included.
+
+        A bound on the element (``items: {minimum: 0}``) has no field to attach to,
+        so it rides on the element type through ``Annotated``. Dropping it would
+        emit a list or map more permissive than its schema.
+        """
+        if "oneOf" in spec:
+            raise UnsupportedConstruct(
+                f"{prop}: oneOf on an array item or map value is not modelled"
+            )
+        element, constraints = self._annotation(prop, spec, owner)
+        if constraints:
+            return f"Annotated[{element}, Field({', '.join(constraints)})]"
+        return element
+
+    def _one_of_annotation(self, prop: str, spec: dict[str, Any], owner: str) -> str:
+        """Model ``oneOf`` over object shapes: exactly one branch must match.
+
+        A pydantic union picks the best-matching member and stops; JSON Schema's
+        ``oneOf`` also rejects a value that matches two. The validator emitted in
+        :meth:`_emit_object` restores that half, so a payload ambiguous between
+        two shapes is an error rather than whichever the union tried first.
+        """
+        branches = spec["oneOf"]
+        if "anyOf" in spec or any(k in spec for k in ("$ref", "type", "enum")):
+            raise UnsupportedConstruct(
+                f"{prop}: oneOf must stand alone, not beside anyOf, $ref, type or enum"
+            )
+        if not isinstance(branches, list) or len(branches) < 2:
+            raise UnsupportedConstruct(f"{prop}: oneOf needs at least two branches")
+        names = []
+        for index, branch in enumerate(branches):
+            if "$ref" in branch and len(branch) == 1:
+                names.append(self._ref_target(branch["$ref"]))
+            elif _declares_object_properties(branch):
+                names.append(
+                    self._emit_object(
+                        f"{owner}{_pascal(prop)}Option{index + 1}", branch
+                    )
+                )
+            else:
+                raise UnsupportedConstruct(
+                    f"{prop}: oneOf branches must be $refs or objects with "
+                    f"properties; branch {index + 1} is {branch!r}"
+                )
+        return " | ".join(names)
+
+    def _one_of_validator(self, prop: str, union: str) -> str:
+        """The exactly-one check for a ``oneOf`` property typed as *union*.
+
+        It returns the branch instance that matched, so the union does not
+        validate the value a second time.
+        """
+        options = union.replace(" | ", ", ")
+        return (
+            f'\n    @field_validator({prop!r}, mode="before")\n'
+            f"    @classmethod\n"
+            f"    def _one_of_{prop}(cls, v: Any) -> Any:\n"
+            f"        matches = []\n"
+            f"        for option in ({options},):\n"
+            f"            try:\n"
+            f"                matches.append(option.model_validate(v))\n"
+            f"            except ValidationError:\n"
+            f"                continue\n"
+            f"        if len(matches) != 1:\n"
+            f"            raise ValueError(\n"
+            f'                f"{prop} must match exactly one of {options}; "\n'
+            f'                f"it matched {{len(matches)}}"\n'
+            f"            )\n"
+            f"        return matches[0]\n"
+        )
 
     def _anyof_validator(self, prop: str, spec: dict[str, Any]) -> str | None:
         """Model the one anyOf shape the contracts use: a const escape OR a range.
@@ -445,6 +561,8 @@ class Generator:
             validator = self._anyof_validator(prop, pspec)
             if validator:
                 validators.append(validator)
+            if "oneOf" in pspec:
+                validators.append(self._one_of_validator(prop, annotation))
 
             if description := pspec.get("description"):
                 constraints.append(f"description={description!r}")
@@ -520,13 +638,14 @@ class Generator:
         # committed and linted like any other, so an unused import is a CI
         # failure rather than cosmetic -- and conditioning on the body is more
         # honest than a fixed block that happens to fit the widest schema.
-        typing_names = [n for n in ("Any", "Literal") if n in body]
+        typing_names = [n for n in ("Annotated", "Any", "Literal") if n in body]
         pydantic_names = [
             n
             for n in (
                 "BaseModel",
                 "ConfigDict",
                 "Field",
+                "ValidationError",
                 "field_validator",
                 "model_validator",
             )
@@ -567,7 +686,8 @@ def _module_stem(contract_id: str) -> str:
 def _run_all() -> dict[str, Generator]:
     """Run the generator over every shipped schema, keyed by contract id."""
     generators = {}
-    for path in sorted(SCHEMAS_DIR.glob("*.schema.json")):
+    paths = [*SCHEMAS_DIR.glob("*.schema.json"), *SECTIONS_DIR.glob("*.schema.json")]
+    for path in sorted(paths, key=lambda p: p.name):
         generator = Generator(json.loads(path.read_text(encoding="utf-8")))
         generator.run()
         generators[generator.contract_id] = generator

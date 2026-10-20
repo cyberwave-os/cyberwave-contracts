@@ -23,6 +23,7 @@ where a copy lives -- and the repo's own tests are what resolve and verify them.
 from __future__ import annotations
 
 import json
+import re
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import cache, lru_cache
@@ -36,11 +37,17 @@ import yaml
 #: locate these; shipping them inside the package removes the search entirely.
 _PACKAGE_DIR = Path(__file__).resolve().parent
 SCHEMAS_DIR = _PACKAGE_DIR / "schemas"
+#: Section contracts live apart from payload schemas on purpose: everything in
+#: ``schemas/`` is listed by ``GET /api/v1/contracts`` and embedded in the SDK, and
+#: section contracts stay out of that public surface until they are settled.
+SECTIONS_DIR = _PACKAGE_DIR / "sections"
 MANIFEST_PATH = _PACKAGE_DIR / "manifest.yml"
 
-#: Where the schema tree sits in the monorepo, for messages and for repo tooling
+#: Where the schema trees sit in the repository, for messages and for repo tooling
 #: that has a checkout. Not used to find anything at runtime.
-SCHEMAS_RELATIVE = "cyberwave-contracts/cyberwave_contracts/schemas"
+_PACKAGE_RELATIVE = "cyberwave-contracts/cyberwave_contracts"
+SCHEMAS_RELATIVE = f"{_PACKAGE_RELATIVE}/schemas"
+SECTIONS_RELATIVE = f"{_PACKAGE_RELATIVE}/sections"
 
 #: Payload identity key spellings in use. ``version`` is the older spelling on the two
 #: manifest contracts and carries a contract id, not a version; it is listed so a
@@ -54,7 +61,9 @@ ID_FIELDS = frozenset({"contract", "version", "schema_version"})
 #: identity rule and have deployed publishers (drivers, an Android app) that send
 #: no contract id. Requiring one would be a v2 those publishers do not emit, so
 #: their schemas name the topic in a :data:`TOPIC_ANNOTATION` instead.
-CONTRACT_KINDS = frozenset({"payload", "overlay", "topic"})
+#: Sections describe one part of a stored JSON field; they are identified by where
+#: they live, not by a field inside them.
+CONTRACT_KINDS = frozenset({"payload", "overlay", "topic", "section"})
 
 #: The kinds whose payload names its own contract in ``id_field``. Every other
 #: kind declares ``id_field: null``.
@@ -64,6 +73,37 @@ SELF_IDENTIFYING_KINDS = frozenset({"payload"})
 #: to the environment prefix, with ``{twin_uuid}``-style placeholders. An ``x-``
 #: key, so validators and the model generator treat it as documentation.
 TOPIC_ANNOTATION = "x-mqtt-topic"
+
+#: What a section holds, which decides who may write it. The Kubernetes
+#: spec/status split applied to the JSON fields: user configuration and curated
+#: catalog definitions are client-writable and validated; reported state is
+#: written by runtime processes such as device drivers and the platform; derived values are computed
+#: for reading; bookkeeping is server-only.
+SECTION_KINDS = frozenset(
+    {"configuration", "catalog", "reported", "derived", "bookkeeping"}
+)
+
+#: How a twin inherits an asset section. Only ``Asset.*`` sections carry one, and
+#: an asset section that omits it is ``instance_only``: never inherited.
+MERGE_STRATEGIES = frozenset(
+    {"instance_only", "replace", "narrow_only", "seed_once", "precedence_chain"}
+)
+
+#: The models whose JSON fields sections describe, as ``location`` spells them.
+SECTION_ENTITIES = frozenset(
+    {
+        "Asset",
+        "ControllerPolicy",
+        "Environment",
+        "EnvironmentObject",
+        "MLModel",
+        "PolicyJointBinding",
+        "Twin",
+    }
+)
+
+#: ``Entity.field[.path...]``, e.g. ``Environment.settings.geo``.
+_LOCATION_PATTERN = re.compile(r"^[A-Z][A-Za-z]*(\.[a-z_][a-z0-9_]*)+$")
 
 #: Derived, not restated: an owner exists exactly when it has a rule below. A
 #: second spelling of this list is a way for the two to disagree.
@@ -88,9 +128,12 @@ SHAPE_OWNERSHIP: dict[str, dict[str, Any]] = {
         # edge components, and by partners writing a driver against the published
         # wheel -- none of which can import a Django app directory. The backend
         # serves them over /api/v1/contracts, which is a use, not ownership.
-        "trees": (SCHEMAS_RELATIVE,),
+        "trees": (SCHEMAS_RELATIVE, SECTIONS_RELATIVE),
         "suffix": ".schema.json",
-        "defines": "commands, plans, and transport overlays defined as JSON Schema",
+        "defines": (
+            "commands, plans, transport overlays and stored sections defined as "
+            "JSON Schema"
+        ),
     },
     "protobuf": {
         "source_key": "proto_source",
@@ -148,6 +191,11 @@ class Contract:
     kind: str = "payload"
     schema: str | None = None
     proto_source: str | None = None
+    #: Section contracts only: where the section is stored, what it holds, and
+    #: (asset sections only) how a twin inherits it.
+    location: str | None = None
+    section_kind: str | None = None
+    merge: str | None = None
 
     @property
     def copied_mirrors(self) -> tuple[Mirror, ...]:
@@ -182,7 +230,8 @@ class Contract:
         """
         if self.schema is None:
             raise ValueError(f"{self.id} declares no JSON Schema")
-        return SCHEMAS_DIR / f"{self.id}.schema.json"
+        directory = SECTIONS_DIR if self.kind == "section" else SCHEMAS_DIR
+        return directory / f"{self.id}.schema.json"
 
     @property
     def has_schema(self) -> bool:
@@ -213,10 +262,14 @@ def load_contracts() -> tuple[Contract, ...]:
             kind=entry.get("kind", "payload"),
             owner=entry["owner"],
             schema_owner=entry["schema_owner"],
-            id_field=entry["id_field"],
+            # Sections are identified by `location`, so they omit it.
+            id_field=entry.get("id_field"),
             schema=entry.get("schema"),
             proto_source=entry.get("proto_source"),
             python_source=entry.get("python_source"),
+            location=entry.get("location"),
+            section_kind=entry.get("section_kind"),
+            merge=entry.get("merge"),
             mirrors=tuple(
                 Mirror(
                     path=mirror["path"],
@@ -272,4 +325,80 @@ def validate_ownership(contract: Contract) -> list[str]:
                 f"schema_owner is {contract.schema_owner!r} but {other_key!r} is "
                 f"also set; a shape has one owner, not two"
             )
+    return reasons
+
+
+def validate_section(contract: Contract) -> list[str]:
+    """Reasons *contract* breaks the section rules, empty when it complies.
+
+    A section is identified by where it is stored, so it carries ``location``
+    instead of an ``id_field``, says what it holds (:data:`SECTION_KINDS`), and --
+    only when it lives on an asset -- how a twin inherits it
+    (:data:`MERGE_STRATEGIES`). The section-only keys are refused on every other
+    kind, so a payload cannot half-declare itself a section.
+    """
+    section_keys = {
+        "location": contract.location,
+        "section_kind": contract.section_kind,
+        "merge": contract.merge,
+    }
+    is_section = contract.kind == "section"
+    reasons: list[str] = []
+    if contract.schema is not None and is_section != contract.schema.startswith(
+        f"{SECTIONS_RELATIVE}/"
+    ):
+        reasons.append(
+            f"a section's schema lives in {SECTIONS_RELATIVE}/, not {contract.schema!r}"
+            if is_section
+            else f"a {contract.kind}'s schema lives in {SCHEMAS_RELATIVE}/; "
+            f"{SECTIONS_RELATIVE}/ holds section contracts only"
+        )
+    if not is_section:
+        reasons += [
+            f"{key} is only meaningful on a section, not on a {contract.kind}"
+            for key, value in section_keys.items()
+            if value is not None
+        ]
+        return reasons
+
+    if contract.id_field is not None:
+        reasons.append(
+            "a section is identified by its location; it must not declare an "
+            f"id_field (got {contract.id_field!r})"
+        )
+
+    location = contract.location
+    if location is None:
+        reasons.append(
+            "a section must declare its location, e.g. Asset.metadata.drivers"
+        )
+    elif not _LOCATION_PATTERN.match(location):
+        reasons.append(
+            f"location {location!r} must read Entity.field[.path], e.g. "
+            "Environment.settings.geo"
+        )
+    elif (entity := location.split(".", 1)[0]) not in SECTION_ENTITIES:
+        reasons.append(
+            f"location {location!r} names {entity!r}, which is not one of "
+            f"{sorted(SECTION_ENTITIES)}"
+        )
+
+    if contract.section_kind not in SECTION_KINDS:
+        reasons.append(
+            f"section_kind must be one of {sorted(SECTION_KINDS)}, got "
+            f"{contract.section_kind!r}"
+        )
+
+    if contract.merge is not None:
+        if location is None or not location.startswith("Asset."):
+            reasons.append(
+                "merge describes how a twin inherits an asset section; only "
+                f"Asset.* sections may declare it (location is {location!r})"
+            )
+        if contract.merge not in MERGE_STRATEGIES:
+            reasons.append(
+                f"merge must be one of {sorted(MERGE_STRATEGIES)}, got "
+                f"{contract.merge!r}"
+            )
+
     return reasons

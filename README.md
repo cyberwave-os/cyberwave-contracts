@@ -46,6 +46,7 @@ contract. Each of those schemas names its topic in an `x-mqtt-topic` annotation.
 | | |
 | --- | --- |
 | `cyberwave_contracts.schemas` | the JSON Schemas, usable from any language |
+| `cyberwave_contracts.sections` | section contracts: one part of a stored JSON field (see below) |
 | `cyberwave_contracts.models` | generated pydantic models, one per schema |
 | `cyberwave_contracts.manifest` | the index: every contract, its owner, and where it is mirrored |
 | `cyberwave_contracts.source_type` | the authoritative decomposition of legacy `source_type` provenance |
@@ -82,6 +83,26 @@ consumers.
 
 `GET /api/v1/contracts` lists what a given deployment serves.
 
+## Sections
+
+A section contract describes one part of a JSON field stored on a Cyberwave
+object -- for example `Environment.settings.geo` -- rather than a message on the
+wire. Its manifest entry has `kind: section` and, instead of an identity field:
+
+- `location`: where the section is stored, as `Entity.field[.path]`;
+- `section_kind`: `configuration`, `catalog`, `reported`, `derived` or
+  `bookkeeping`, which says who may write it;
+- `merge` (asset sections only): how a twin inherits it -- `instance_only` (the
+  default), `replace`, `narrow_only`, `seed_once` or `precedence_chain`.
+
+A section's own object is closed, so a misspelt key is an error. Section schemas
+ship in `sections/` with generated models, and are not listed by
+`GET /api/v1/contracts`.
+
+| id | location |
+| --- | --- |
+| `environment.settings.geo.v1` | `Environment.settings.geo` |
+
 ## Transport envelope
 
 MQTT payloads keep their existing flat JSON shape. The v1 transport envelope
@@ -111,10 +132,17 @@ Contract roots accept unknown properties, so a newer publisher can add fields yo
 version has not heard of, and your model keeps them rather than dropping them on a
 round-trip.
 
+CI enforces this: `python -m cyberwave_contracts._compat --base <revision>`
+compares every schema with its previous version. Payloads must stay compatible in
+both directions, because producers and consumers upgrade at different times;
+sections must stay readable by the new version, because stored rows outlive the
+code that wrote them.
+
 ## Development
 
 ```bash
-make models     # regenerate the pydantic models from the schemas
+make models               # regenerate the pydantic models from the schemas
+make compat BASE=<git-rev>   # check schema changes are compatible with BASE
 ```
 
 Generated output is committed, so consumers need no build step. CI fails if a

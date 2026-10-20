@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cyberwave-contracts"
-version = "0.1.1"
+version = "0.1.2"
 description = "Payload and configuration contracts shared by the Cyberwave backend, SDK, and edge components"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -46,4 +46,5 @@ cyberwave_contracts = [
     "py.typed",
     "source_type_axes.yml",
     "schemas/*.schema.json",
+    "sections/*.schema.json",
 ]

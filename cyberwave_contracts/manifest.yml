@@ -407,3 +407,24 @@ contracts:
     id_field: schema_version
     python_source: cyberwave-edge-runtime/runtime-services/intelligence/common/python/cyberwave_map_bundle/bundle.py
     mirrors: []
+
+  # --- Sections ---------------------------------------------------------------
+  #
+  # A section contract describes one part of a stored JSON field rather than a
+  # message on the wire, so it has no id_field: it is identified by `location`
+  # (`Entity.field[.path]`). `section_kind` says who may write it -- configuration,
+  # catalog, reported, derived or bookkeeping -- and `merge` (Asset.* sections
+  # only, default instance_only) says how a twin inherits it. Section schemas live
+  # in sections/, which GET /api/v1/contracts and the SDK do not serve.
+
+  # The pilot section: the georeference the platform already validates
+  # strictly, so this describes existing behaviour without changing it.
+  - id: environment.settings.geo.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: Environment.settings.geo
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.settings.geo.v1.schema.json
+    python_source: cyberwave-backend/src/lib/geo_transform.py
+    mirrors: []

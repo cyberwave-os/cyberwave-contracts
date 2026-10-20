@@ -16,6 +16,9 @@ from cyberwave_contracts.models.aerial_mission_v1 import (
 from cyberwave_contracts.models.aerial_velocity_command_v1 import (
     AerialVelocityCommandV1,
 )
+from cyberwave_contracts.models.environment_settings_geo_v1 import (
+    EnvironmentSettingsGeoV1,
+)
 from cyberwave_contracts.models.locomotion_velocity_command_v1 import (
     LocomotionVelocityCommandV1,
 )
@@ -125,6 +128,7 @@ from cyberwave_contracts.models.twin_flight_state_v1 import (
 MODELS_BY_CONTRACT_ID = {
     "aerial.mission.v1": AerialMissionV1,
     "aerial.velocity_command.v1": AerialVelocityCommandV1,
+    "environment.settings.geo.v1": EnvironmentSettingsGeoV1,
     "locomotion.velocity_command.v1": LocomotionVelocityCommandV1,
     "policy_artifact_manifest.v1": PolicyArtifactManifestV1,
     "simulation.compatibility_attestation.v1": SimulationCompatibilityAttestationV1,
@@ -145,6 +149,7 @@ __all__ = [
     "AerialMissionV1",
     "AerialVelocityCommandV1",
     "ArtifactFile",
+    "EnvironmentSettingsGeoV1",
     "LocomotionVelocityCommandV1",
     "MODELS_BY_CONTRACT_ID",
     "MissionHome",

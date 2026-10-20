@@ -256,21 +256,24 @@ def test_generator_emits_no_class_for_a_non_object_def() -> None:
     assert "TestGeneratorProbeV1" in namespace
 
 
-def test_generator_refuses_constrained_map_values_and_items() -> None:
-    with pytest.raises(_generate.UnsupportedConstruct):
-        _generate.generate(
-            _schema(
-                {
-                    "m": {
-                        "type": "object",
-                        "additionalProperties": {"type": "integer", "minimum": 0},
-                    }
-                }
-            )
+def test_generator_enforces_constrained_map_values_and_items() -> None:
+    # A bound on an element has no field of its own, so it rides on the element
+    # type through Annotated rather than being dropped.
+    namespace = _build(
+        _schema(
+            {
+                "m": {
+                    "type": "object",
+                    "additionalProperties": {"type": "integer", "minimum": 0},
+                },
+                "l": {"type": "array", "items": {"type": "string", "pattern": "^a$"}},
+            }
         )
-    with pytest.raises(_generate.UnsupportedConstruct):
-        _generate.generate(
-            _schema(
-                {"l": {"type": "array", "items": {"type": "string", "pattern": "^a$"}}}
-            )
-        )
+    )
+    model = namespace["TestGeneratorProbeV1"]
+    model.model_validate(
+        {"contract": "test.generator_probe.v1", "m": {"x": 0}, "l": ["a"]}
+    )
+    for bad in ({"m": {"x": -1}}, {"l": ["b"]}):
+        with pytest.raises(ValidationError):
+            model.model_validate({"contract": "test.generator_probe.v1", **bad})

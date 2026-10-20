@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/environment.settings.geo.v1.schema.json",
+  "title": "Environment georeference",
+  "description": "Where on Earth an environment's origin sits, Clients provide the five location fields; the server sets contract_version, source, anchor_status, set_at and set_by, and replaces the whole object on every write. heading_deg is the true-north bearing of the environment's +Y axis in degrees clockwise.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "latitude",
+    "longitude",
+    "altitude",
+    "altitude_datum",
+    "heading_deg",
+    "source",
+    "anchor_status",
+    "set_at",
+    "set_by"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": 1,
+      "readOnly": true,
+      "description": "Version of the georeference layout."
+    },
+    "latitude": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90,
+      "description": "WGS-84 latitude of the environment origin, in degrees."
+    },
+    "longitude": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180,
+      "description": "WGS-84 longitude of the environment origin, in degrees."
+    },
+    "altitude": {
+      "type": "number",
+      "description": "Altitude in metres, in altitude_datum, at environment z == 0."
+    },
+    "altitude_datum": {
+      "enum": ["msl", "ellipsoid"],
+      "description": "Datum the altitude is expressed in."
+    },
+    "heading_deg": {
+      "type": "number",
+      "minimum": -360,
+      "maximum": 360,
+      "description": "True-north bearing of the environment +Y axis, degrees clockwise."
+    },
+    "source": {
+      "enum": ["manual"],
+      "readOnly": true,
+      "description": "How the georeference was set."
+    },
+    "anchor_status": {
+      "enum": ["manual", "unverified"],
+      "readOnly": true,
+      "description": "unverified after an environment is cloned, until the georeference is confirmed again."
+    },
+    "set_at": {
+      "type": "string",
+      "minLength": 1,
+      "readOnly": true,
+      "description": "When the georeference was set, as an ISO 8601 timestamp."
+    },
+    "set_by": {
+      "type": "string",
+      "minLength": 1,
+      "readOnly": true,
+      "description": "UUID of the user who set the georeference."
+    }
+  }
+}

@@ -7,7 +7,7 @@
 HERE := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 PKG := $(HERE)/cyberwave_contracts
 
-.PHONY: models check
+.PHONY: models check compat
 
 models:
 	@python3 $(PKG)/_generate.py
@@ -26,3 +26,9 @@ check: models
 		|| (echo "❌ committed models are stale or uncommitted:"; \
 		    git status --porcelain -- $(PKG)/models; exit 1)
 	@echo "✅ committed models match the schemas"
+
+# Fails if a schema change breaks the data its previous version described.
+# Mirrors the CI step, which compares with the PR's base branch.
+BASE ?= origin/HEAD
+compat:
+	@cd $(HERE)/.. && python3 -m cyberwave_contracts._compat --base $(BASE)

@@ -22,12 +22,16 @@ in ``x-mqtt-topic``.
 
 from cyberwave_contracts.manifest import (
     MANIFEST_PATH,
+    MERGE_STRATEGIES,
     SCHEMAS_DIR,
+    SECTION_KINDS,
+    SECTIONS_DIR,
     SHAPE_OWNERSHIP,
     Contract,
     Mirror,
     load_contracts,
     validate_ownership,
+    validate_section,
 )
 from cyberwave_contracts.models import (
     MODELS_BY_CONTRACT_ID,
@@ -57,12 +61,15 @@ from cyberwave_contracts.source_type import (
     source_types_where,
 )
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = [
     "MANIFEST_PATH",
+    "MERGE_STRATEGIES",
     "MODELS_BY_CONTRACT_ID",
     "SCHEMAS_DIR",
+    "SECTIONS_DIR",
+    "SECTION_KINDS",
     "SOURCE_TYPE_AXES_PATH",
     "SOURCE_TYPE_EDGE",
     "SOURCE_TYPE_EDGE_FOLLOWER",
@@ -91,4 +98,5 @@ __all__ = [
     "load_source_type_axes",
     "source_types_where",
     "validate_ownership",
+    "validate_section",
 ]
