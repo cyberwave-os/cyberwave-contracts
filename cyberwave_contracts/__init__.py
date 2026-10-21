@@ -32,6 +32,7 @@ from cyberwave_contracts.manifest import (
     load_contracts,
     validate_ownership,
     validate_section,
+    split_location,
 )
 from cyberwave_contracts.models import (
     MODELS_BY_CONTRACT_ID,
@@ -97,6 +98,7 @@ __all__ = [
     "load_contracts",
     "load_source_type_axes",
     "source_types_where",
+    "split_location",
     "validate_ownership",
     "validate_section",
 ]

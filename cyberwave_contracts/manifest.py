@@ -328,6 +328,12 @@ def validate_ownership(contract: Contract) -> list[str]:
     return reasons
 
 
+def split_location(location: str) -> tuple[str, str, tuple[str, ...]]:
+    """``Entity.field.path`` as ``(entity, field, path)``; no validation."""
+    entity, field, *path = location.split(".")
+    return entity, field, tuple(path)
+
+
 def validate_section(contract: Contract) -> list[str]:
     """Reasons *contract* breaks the section rules, empty when it complies.
 
@@ -377,7 +383,7 @@ def validate_section(contract: Contract) -> list[str]:
             f"location {location!r} must read Entity.field[.path], e.g. "
             "Environment.settings.geo"
         )
-    elif (entity := location.split(".", 1)[0]) not in SECTION_ENTITIES:
+    elif (entity := split_location(location)[0]) not in SECTION_ENTITIES:
         reasons.append(
             f"location {location!r} names {entity!r}, which is not one of "
             f"{sorted(SECTION_ENTITIES)}"

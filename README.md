@@ -103,6 +103,21 @@ ship in `sections/` with generated models, and are not listed by
 | --- | --- |
 | `environment.settings.geo.v1` | `Environment.settings.geo` |
 
+When a stored section changes shape, the step from the old shape to the new one
+is a pure function registered in `cyberwave_contracts.upgrades`. Readers apply it
+while both shapes exist, and a migration applies the same function to the stored
+rows, so the two cannot disagree:
+
+```python
+from cyberwave_contracts import upgrades
+
+canonical = upgrades.upgrade("environment.settings.geo.v1", stored_value)
+```
+
+An upgrade never modifies its input, gives the same result on every run, and
+returns a value it does not recognise unchanged. A section with no registered
+upgrade is already canonical.
+
 ## Transport envelope
 
 MQTT payloads keep their existing flat JSON shape. The v1 transport envelope
