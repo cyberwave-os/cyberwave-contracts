@@ -257,6 +257,11 @@ TIMING_SIMULATION_SPEED = "simulation_speed"
 TIMING_STREAM_FREQUENCY_HZ = "stream_frequency_hz"
 TIMING_RANGE_STREAM_FREQUENCY_HZ = "range_stream_frequency_hz"
 TIMING_RANGE_SELF_HIT_FALLBACK = "range_self_hit_fallback"
+#: MuJoCo only: render colour cameras at the size their sensor declares instead
+#: of fitting them into the plant's ``CAMERA_MAX_WIDTH x CAMERA_MAX_HEIGHT`` box
+#: (640x480). Off by default, because frames are software-rendered and a large
+#: camera costs real-time factor; only ``true`` is ever sent.
+TIMING_FULL_CAMERA_RESOLUTION = "full_camera_resolution"
 #: Isaac only: simulated seconds between rendered frames. Cameras render on
 #: one shared clock at ``1 / rendering_dt`` (a camera authored slower keeps
 #: its own rate), decoupled from the physics ``dt`` -- the plant's
@@ -279,6 +284,7 @@ TIMING_FIELDS: tuple[str, ...] = (
     TIMING_STREAM_FREQUENCY_HZ,
     TIMING_RANGE_STREAM_FREQUENCY_HZ,
     TIMING_RANGE_SELF_HIT_FALLBACK,
+    TIMING_FULL_CAMERA_RESOLUTION,
     TIMING_RENDERING_DT,
     ISAAC_SUBSTEPS,
     ISAAC_SOLVER_POSITION_ITERATIONS,
@@ -310,11 +316,14 @@ ISAAC_ONLY_TIMING_FIELDS: frozenset[str] = frozenset(
 
 #: The timing fields each backend honours. Isaac has no range "self-hit
 #: fallback": its ray sensors are RTX/PhysX scene queries that already exclude
-#: the emitting body, so the MuJoCo re-cast switch has no meaning there.
+#: the emitting body, so the MuJoCo re-cast switch has no meaning there. Nor does
+#: it have the colour-camera size cap: Isaac renders each camera on its own
+#: clock at the size the sensor declares.
 TIMING_FIELDS_BY_BACKEND: Mapping[str, frozenset[str]] = {
     BACKEND_MUJOCO: frozenset(TIMING_FIELDS) - ISAAC_ONLY_TIMING_FIELDS,
     BACKEND_MUJOCO_WARP: frozenset(TIMING_FIELDS) - ISAAC_ONLY_TIMING_FIELDS,
-    BACKEND_ISAAC: frozenset(TIMING_FIELDS) - {TIMING_RANGE_SELF_HIT_FALLBACK},
+    BACKEND_ISAAC: frozenset(TIMING_FIELDS)
+    - {TIMING_RANGE_SELF_HIT_FALLBACK, TIMING_FULL_CAMERA_RESOLUTION},
 }
 
 #: Field -> inclusive integer bounds. The iteration bounds are PhysX's own
@@ -408,7 +417,11 @@ def normalize_timing(
         value = timing.get(key)
         if value is None or key in ISAAC_PHYSICS_FIELDS:
             continue
-        if key in (TIMING_REALTIME, TIMING_RANGE_SELF_HIT_FALLBACK):
+        if key in (
+            TIMING_REALTIME,
+            TIMING_RANGE_SELF_HIT_FALLBACK,
+            TIMING_FULL_CAMERA_RESOLUTION,
+        ):
             if not isinstance(value, bool):
                 raise SimulationContractError(
                     ERROR_PARAMETER_INVALID, f"{key} must be true or false."
