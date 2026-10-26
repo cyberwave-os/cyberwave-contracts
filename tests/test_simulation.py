@@ -742,6 +742,24 @@ def test_timing_rejects_unknown_and_backend_unsupported_keys() -> None:
     }
 
 
+def test_full_camera_resolution_is_a_mujoco_boolean_isaac_refuses() -> None:
+    for backend in ("mujoco", "mujoco_warp"):
+        assert sim.normalize_timing(backend, {"full_camera_resolution": True}) == {
+            "full_camera_resolution": True
+        }
+        # Absent and None mean "keep the plant's cap"; neither is sent on.
+        assert sim.normalize_timing(backend, {"full_camera_resolution": None}) == {}
+    with pytest.raises(sim.SimulationContractError) as exc:
+        sim.normalize_timing("isaac", {"full_camera_resolution": True})
+    assert exc.value.code == sim.ERROR_PARAMETER_UNSUPPORTED
+    assert sim.TIMING_FULL_CAMERA_RESOLUTION in sim.TIMING_FIELDS
+    # Only a real boolean: 1 and "true" are not.
+    for bad in (1, "true"):
+        with pytest.raises(sim.SimulationContractError) as exc:
+            sim.normalize_timing("mujoco", {"full_camera_resolution": bad})
+        assert exc.value.code == sim.ERROR_PARAMETER_INVALID
+
+
 def test_isaac_timing_carries_solver_and_render_settings() -> None:
     timing = sim.normalize_timing(
         "isaac",
