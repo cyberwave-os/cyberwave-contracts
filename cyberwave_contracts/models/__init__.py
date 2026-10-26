@@ -16,6 +16,31 @@ from cyberwave_contracts.models.aerial_mission_v1 import (
 from cyberwave_contracts.models.aerial_velocity_command_v1 import (
     AerialVelocityCommandV1,
 )
+from cyberwave_contracts.models.common_contract_id_v1 import (
+    CommonContractIdV1,
+)
+from cyberwave_contracts.models.common_controller_ref_v1 import (
+    CommonControllerRefV1,
+)
+from cyberwave_contracts.models.common_controller_type_v1 import (
+    CommonControllerTypeV1,
+)
+from cyberwave_contracts.models.common_pose_v1 import (
+    CommonPoseV1,
+    CommonPoseV1Position,
+)
+from cyberwave_contracts.models.common_quaternion_v1 import (
+    CommonQuaternionV1,
+)
+from cyberwave_contracts.models.common_runtime_target_v1 import (
+    CommonRuntimeTargetV1,
+)
+from cyberwave_contracts.models.common_simulation_backend_v1 import (
+    CommonSimulationBackendV1,
+)
+from cyberwave_contracts.models.common_simulation_engine_v1 import (
+    CommonSimulationEngineV1,
+)
 from cyberwave_contracts.models.environment_settings_geo_v1 import (
     EnvironmentSettingsGeoV1,
 )
@@ -128,6 +153,14 @@ from cyberwave_contracts.models.twin_flight_state_v1 import (
 MODELS_BY_CONTRACT_ID = {
     "aerial.mission.v1": AerialMissionV1,
     "aerial.velocity_command.v1": AerialVelocityCommandV1,
+    "common.contract_id.v1": CommonContractIdV1,
+    "common.controller_ref.v1": CommonControllerRefV1,
+    "common.controller_type.v1": CommonControllerTypeV1,
+    "common.pose.v1": CommonPoseV1,
+    "common.quaternion.v1": CommonQuaternionV1,
+    "common.runtime_target.v1": CommonRuntimeTargetV1,
+    "common.simulation_backend.v1": CommonSimulationBackendV1,
+    "common.simulation_engine.v1": CommonSimulationEngineV1,
     "environment.settings.geo.v1": EnvironmentSettingsGeoV1,
     "locomotion.velocity_command.v1": LocomotionVelocityCommandV1,
     "policy_artifact_manifest.v1": PolicyArtifactManifestV1,
@@ -149,6 +182,15 @@ __all__ = [
     "AerialMissionV1",
     "AerialVelocityCommandV1",
     "ArtifactFile",
+    "CommonContractIdV1",
+    "CommonControllerRefV1",
+    "CommonControllerTypeV1",
+    "CommonPoseV1",
+    "CommonPoseV1Position",
+    "CommonQuaternionV1",
+    "CommonRuntimeTargetV1",
+    "CommonSimulationBackendV1",
+    "CommonSimulationEngineV1",
     "EnvironmentSettingsGeoV1",
     "LocomotionVelocityCommandV1",
     "MODELS_BY_CONTRACT_ID",

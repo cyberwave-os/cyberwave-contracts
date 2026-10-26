@@ -38,6 +38,14 @@ from cyberwave_contracts.models import (
     MODELS_BY_CONTRACT_ID,
     AerialVelocityCommandV1,
     ArtifactFile,
+    CommonContractIdV1,
+    CommonControllerRefV1,
+    CommonControllerTypeV1,
+    CommonPoseV1,
+    CommonQuaternionV1,
+    CommonRuntimeTargetV1,
+    CommonSimulationBackendV1,
+    CommonSimulationEngineV1,
     LocomotionVelocityCommandV1,
     PolicyArtifactManifestV1,
     PolicyBinding,
@@ -62,7 +70,7 @@ from cyberwave_contracts.source_type import (
     source_types_where,
 )
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 __all__ = [
     "MANIFEST_PATH",
@@ -83,6 +91,14 @@ __all__ = [
     "SHAPE_OWNERSHIP",
     "AerialVelocityCommandV1",
     "ArtifactFile",
+    "CommonContractIdV1",
+    "CommonControllerRefV1",
+    "CommonControllerTypeV1",
+    "CommonPoseV1",
+    "CommonQuaternionV1",
+    "CommonRuntimeTargetV1",
+    "CommonSimulationBackendV1",
+    "CommonSimulationEngineV1",
     "Contract",
     "LocomotionVelocityCommandV1",
     "Mirror",

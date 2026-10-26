@@ -10,6 +10,8 @@ PKG := $(HERE)/cyberwave_contracts
 .PHONY: models check compat
 
 models:
+	@python3 -m cyberwave_contracts._contract_ids
+	@python3 -m cyberwave_contracts._sdk_types
 	@python3 $(PKG)/_generate.py
 	@ruff format -q $(PKG)/models/*.py
 	@ruff check --fix -q $(PKG)/models/*.py || true

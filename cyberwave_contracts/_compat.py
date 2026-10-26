@@ -94,6 +94,9 @@ def incompatibilities(
     """
     reader_doc = reader if reader_doc is None else reader_doc
     writer_doc = writer if writer_doc is None else writer_doc
+    ref = reader.get("$ref")
+    if ref and ref == writer.get("$ref") and not ref.startswith("#"):
+        return []  # same shared vocabulary on both sides; it is compared as its own file
     reader, reader_ref = _resolve(reader, reader_doc)
     writer, writer_ref = _resolve(writer, writer_doc)
     if reader_ref or writer_ref:

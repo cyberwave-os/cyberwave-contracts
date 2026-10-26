@@ -34,9 +34,11 @@
 # still has a backend reader, and only the `python` owner treats it as the shape.
 # cyberwave_contracts/manifest.py::validate_ownership enforces this.
 #
-# kind          -- payload (the default; names itself in id_field), overlay or
-#                  topic (identified by its MQTT topic; id_field null). See
-#                  CONTRACT_KINDS in manifest.py.
+# kind          -- payload (the default; names itself in id_field), overlay,
+#                  topic (identified by its MQTT topic; id_field null),
+#                  section (a part of a stored JSON field) or vocabulary (a value
+#                  other contracts embed, referenced with `$ref: <id>.schema.json`;
+#                  id_field null). See CONTRACT_KINDS in manifest.py.
 # schema        -- the definition when schema_owner is json_schema; omit otherwise
 # proto_source  -- the definition when schema_owner is protobuf
 # schema_owner  -- json_schema | protobuf | python
@@ -59,6 +61,151 @@ contracts:
     id_field: null
     schema: cyberwave-contracts/cyberwave_contracts/schemas/source_type.envelope.v1.schema.json
     mirrors: []
+
+  # Shared vocabularies: values other contracts embed. Each has exactly one
+  # definition, here; a copy elsewhere is a mirror that a test checks.
+  - id: common.controller_ref.v1
+    kind: vocabulary
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/common.controller_ref.v1.schema.json
+    mirrors:
+      # v1 keeps its inline `policy_ref` (a v1 change must be additive); v2 will
+      # `$ref` this contract.
+      - path: cyberwave-contracts/cyberwave_contracts/schemas/simulation_policy_manifest.v1.schema.json
+        language: json
+        sync: field_names
+      # The backend keeps its own types because they carry behaviour (parsing an
+      # option id, resolving a policy). Checked by
+      # cyberwave-backend/src/lib/tests/test_vocabulary_mirrors.py.
+      - path: cyberwave-backend/src/app/services/control/controller_refs.py
+        language: python
+        sync: field_names
+      - path: cyberwave-backend/src/app/api/schemas.py
+        language: python
+        sync: field_names
+      # Written from this schema by cyberwave_contracts/_sdk_types.py.
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/_contract_types.py
+        language: python
+        sync: generated
+      - path: cyberwave-sdks/cyberwave-cpp/include/cyberwave/assets.h
+        language: cpp
+        sync: field_names
+
+  - id: common.runtime_target.v1
+    kind: vocabulary
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/common.runtime_target.v1.schema.json
+    mirrors:
+      - path: cyberwave-backend/src/app/services/controller_policies/runtime_targets.py
+        language: python
+        sync: field_names
+      - path: cyberwave-backend/src/app/api/schemas.py
+        language: python
+        sync: field_names
+      # Written from this schema by cyberwave_contracts/_sdk_types.py.
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/_contract_types.py
+        language: python
+        sync: generated
+      - path: cyberwave-sdks/cyberwave-cpp/include/cyberwave/assets.h
+        language: cpp
+        sync: field_names
+
+  # The enum vocabularies below are checked value by value by
+  # cyberwave-backend/src/lib/tests/test_vocabulary_mirrors.py.
+  - id: common.controller_type.v1
+    kind: vocabulary
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/common.controller_type.v1.schema.json
+    mirrors:
+      - path: cyberwave-backend/src/app/models.py
+        language: python
+        sync: field_names
+      - path: common/protobuf/proto/cyberwave/robot/control/v1/controller_config.proto
+        language: proto
+        sync: field_names
+      - path: cyberwave-frontend/lib/types/controller.ts
+        language: typescript
+        sync: field_names
+
+  - id: common.simulation_engine.v1
+    kind: vocabulary
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/common.simulation_engine.v1.schema.json
+    mirrors:
+      - path: cyberwave-contracts/cyberwave_contracts/simulation.py
+        language: python
+        sync: field_names
+      - path: cyberwave-backend/src/lib/simulation_backends.py
+        language: python
+        sync: field_names
+
+  - id: common.simulation_backend.v1
+    kind: vocabulary
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/common.simulation_backend.v1.schema.json
+    mirrors:
+      - path: cyberwave-backend/src/lib/simulation_backends.py
+        language: python
+        sync: field_names
+
+  - id: common.quaternion.v1
+    kind: vocabulary
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/common.quaternion.v1.schema.json
+    mirrors:
+      - path: cyberwave-backend/src/lib/mqtt_schemas.py
+        language: python
+        sync: field_names
+      - path: cyberwave-robot-format/cyberwave_robot_format/schema.py
+        language: python
+        sync: field_names
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/schema.py
+        language: python
+        sync: field_names
+      - path: common/protobuf/proto/cyberwave/geometry/v1/primitives.proto
+        language: proto
+        sync: field_names
+
+  - id: common.pose.v1
+    kind: vocabulary
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/common.pose.v1.schema.json
+    mirrors:
+      - path: cyberwave-robot-format/cyberwave_robot_format/schema.py
+        language: python
+        sync: field_names
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/schema.py
+        language: python
+        sync: field_names
+      - path: common/protobuf/proto/cyberwave/geometry/v1/poses.proto
+        language: proto
+        sync: field_names
+
+  # Generated from this manifest by cyberwave_contracts/_contract_ids.py.
+  - id: common.contract_id.v1
+    kind: vocabulary
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/common.contract_id.v1.schema.json
+    mirrors:
+      - path: cyberwave-backend/src/lib/policy_contracts.py
+        language: python
+        sync: field_names
 
   - id: locomotion.velocity_command.v1
     owner: backend

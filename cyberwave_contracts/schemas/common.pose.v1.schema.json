@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/common.pose.v1.schema.json",
+  "title": "Cyberwave Pose",
+  "description": "Where a body is and which way it faces, in a frame the enclosing contract names: a position in metres and an orientation as a quaternion. The same six numbers as protobuf geometry.v1.Pose (`position`, `orientation`) and as the Pose in cyberwave-robot-format and the Python SDK. A pose locates one body in one frame; a transform relating two frames uses `translation` and `rotation`.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["position", "orientation"],
+  "properties": {
+    "position": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["x", "y", "z"],
+      "description": "Position in metres.",
+      "properties": {
+        "x": { "type": "number", "description": "X, in metres." },
+        "y": { "type": "number", "description": "Y, in metres." },
+        "z": { "type": "number", "description": "Z, in metres." }
+      }
+    },
+    "orientation": { "$ref": "common.quaternion.v1.schema.json" }
+  }
+}

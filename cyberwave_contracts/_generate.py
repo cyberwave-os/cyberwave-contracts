@@ -33,10 +33,17 @@ from __future__ import annotations
 import json
 import re
 import sys
+from functools import cache
 from pathlib import Path
 from typing import Any
 
-from cyberwave_contracts.manifest import SCHEMAS_DIR, SECTIONS_DIR
+from cyberwave_contracts.manifest import (
+    CONTRACT_REF_SUFFIX,
+    SCHEMAS_DIR,
+    SECTIONS_DIR,
+    is_contract_ref,
+    load_contracts,
+)
 
 _PRIMITIVES = {
     "number": "Number",
@@ -183,6 +190,27 @@ def _pascal(text: str) -> str:
     return "".join(out)
 
 
+def _nullable_ref(spec: dict[str, Any]) -> str | None:
+    """The ``$ref`` of ``{anyOf: [{$ref: X}, {type: "null"}]}``, else ``None``.
+
+    How JSON Schema says "a reference, or null"; a ``$ref`` cannot also carry a
+    ``type``. The one ``anyOf`` shape besides the const-or-range one below.
+    """
+    branches = spec.get("anyOf")
+    if not isinstance(branches, list) or len(branches) != 2:
+        return None
+    ref, null = branches
+    if set(ref) == {"$ref"} and null == {"type": "null"}:
+        return str(ref["$ref"])
+    return None
+
+
+@cache
+def _vocabulary_ids() -> frozenset[str]:
+    """Contract ids a schema may ``$ref``. Read from the manifest, never re-listed."""
+    return frozenset(c.id for c in load_contracts() if c.kind == "vocabulary")
+
+
 class Generator:
     def __init__(self, schema: dict[str, Any]) -> None:
         self.schema = schema
@@ -200,6 +228,9 @@ class Generator:
         self.root_class = ""
         self.source = ""
         self.emitted: dict[str, str] = {}
+        #: Import lines for the shared vocabularies this schema ``$ref``s, keyed by
+        #: the contract id so a vocabulary referenced twice is imported once.
+        self.imports: dict[str, str] = {}
         #: (class, property) -> the class names a ``oneOf`` property may hold,
         #: filled while annotating and read when that class's validators are
         #: emitted.
@@ -207,12 +238,38 @@ class Generator:
     # -- type mapping ------------------------------------------------------
 
     def _ref_target(self, ref: str) -> str:
+        if is_contract_ref(ref):
+            return self._contract_ref(ref)
         if not ref.startswith("#/$defs/"):
-            raise UnsupportedConstruct(f"only #/$defs/ refs are supported, got {ref!r}")
+            raise UnsupportedConstruct(
+                f"only #/$defs/ refs and <contract id>{CONTRACT_REF_SUFFIX} refs "
+                f"are supported, got {ref!r}"
+            )
         name = ref.removeprefix("#/$defs/")
         if name not in self.defs:
             raise UnsupportedConstruct(f"{ref!r} does not resolve")
         return self._emit_object(_pascal(name), self.defs[name])
+
+    def _contract_ref(self, ref: str) -> str:
+        """A ``$ref`` to another contract's root, e.g. ``common.controller_ref.v1.schema.json``.
+
+        Resolved to the shared model, imported from its own generated module, so
+        a vocabulary has one class however many contracts use it. Only a
+        ``vocabulary`` may be referenced: a payload is a message, and a message
+        embedded in another would give two contracts one version history.
+        """
+        target = ref.removesuffix(CONTRACT_REF_SUFFIX)
+        if target == self.contract_id:
+            raise UnsupportedConstruct(f"{ref!r}: a contract cannot reference itself")
+        if target not in _vocabulary_ids():
+            raise UnsupportedConstruct(
+                f"{ref!r} does not name a vocabulary contract in the manifest"
+            )
+        root = _pascal(target)
+        self.imports[target] = (
+            f"from cyberwave_contracts.models.{_module_stem(target)} import {root}"
+        )
+        return root
 
     def _annotation(
         self, prop: str, spec: dict[str, Any], owner: str
@@ -257,6 +314,9 @@ class Generator:
 
         if "$ref" in spec:
             return self._ref_target(spec["$ref"]), constraints
+
+        if (nullable_ref := _nullable_ref(spec)) is not None:
+            return f"{self._ref_target(nullable_ref)} | None", constraints
 
         if "const" in spec:
             return f"Literal[{spec['const']!r}]", constraints
@@ -447,7 +507,7 @@ class Generator:
         what nothing downstream would catch.
         """
         branches = spec.get("anyOf")
-        if not branches:
+        if not branches or _nullable_ref(spec) is not None:
             return None
 
         consts = [b["const"] for b in branches if "const" in b]
@@ -618,9 +678,48 @@ class Generator:
         )
         return name
 
+    def _emit_enum_root(self, name: str, spec: dict[str, Any]) -> None:
+        """A vocabulary whose root is a closed set of strings.
+
+        A ``RootModel`` rather than a bare ``Literal`` alias so the contract id
+        still maps to something with ``model_validate``, like every other
+        contract; a contract that ``$ref``s it uses the class as a field type.
+        """
+        if unknown := _unmodelled(spec, root=True):
+            raise UnsupportedConstruct(
+                f"{name}: schema uses {unknown}, which this generator does not model."
+            )
+        values = spec["enum"]
+        if (
+            spec.get("type") != "string"
+            or not values
+            or not all(isinstance(v, str) for v in values)
+        ):
+            raise UnsupportedConstruct(
+                f"{name}: a root enum must be a non-empty list of strings with "
+                'type "string"'
+            )
+        if len(set(values)) != len(values):
+            raise UnsupportedConstruct(f"{name}: enum lists a value twice")
+        literal = ", ".join(repr(v) for v in values)
+        title = spec.get("title", name)
+        description = spec.get("description", "")
+        docstring = (
+            f'    """{title}\n\n    {description}\n    """\n'
+            if description
+            else f'    """{title}"""\n'
+        )
+        self.class_names.append(name)
+        self.classes.append(
+            f"class {name}(RootModel[Literal[{literal}]]):\n{docstring}"
+        )
+
     def run(self) -> str:
         self.root_class = _pascal(self.contract_id)
-        self._emit_object(self.root_class, self.schema, root=True)
+        if "enum" in self.schema:
+            self._emit_enum_root(self.root_class, self.schema)
+        else:
+            self._emit_object(self.root_class, self.schema, root=True)
         # A $def the root never references is still part of the contract: a
         # JSON Lines contract (simulation.replay_trace.v1) describes its header as
         # the root and each record kind as a $def. Emitted after the root, so a
@@ -645,6 +744,7 @@ class Generator:
                 "BaseModel",
                 "ConfigDict",
                 "Field",
+                "RootModel",
                 "ValidationError",
                 "field_validator",
                 "model_validator",
@@ -663,6 +763,7 @@ class Generator:
                 f"{', '.join(scalar_names)}"
             )
 
+        imports.extend(self.imports[target] for target in sorted(self.imports))
         self.source = (
             f"# !! GENERATED from {self.contract_id}.schema.json -- do not edit.\n\n"
             "from __future__ import annotations\n\n"

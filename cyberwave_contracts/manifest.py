@@ -63,7 +63,11 @@ ID_FIELDS = frozenset({"contract", "version", "schema_version"})
 #: their schemas name the topic in a :data:`TOPIC_ANNOTATION` instead.
 #: Sections describe one part of a stored JSON field; they are identified by where
 #: they live, not by a field inside them.
-CONTRACT_KINDS = frozenset({"payload", "overlay", "topic", "section"})
+#: Vocabularies are values other contracts embed -- a reference, a pose, a closed
+#: set of names. They are never sent on their own, so they carry no identity
+#: field, and they are the only kind another schema may ``$ref``
+#: (``"$ref": "<id>.schema.json"``).
+CONTRACT_KINDS = frozenset({"payload", "overlay", "topic", "section", "vocabulary"})
 
 #: The kinds whose payload names its own contract in ``id_field``. Every other
 #: kind declares ``id_field: null``.
@@ -237,6 +241,15 @@ class Contract:
     def has_schema(self) -> bool:
         return self.schema is not None
 
+    @property
+    def is_enum_root(self) -> bool:
+        """A vocabulary that is a closed set of names rather than an object."""
+        return self.kind == "vocabulary" and "enum" in self.schema_json()
+
+    def bundled_schema(self) -> dict[str, Any]:
+        """The schema with shared vocabularies inlined; see :func:`bundle_schema`."""
+        return bundle_schema(_read_schema(self.schema_path))
+
     def schema_json(self) -> dict[str, Any]:
         """The parsed schema.
 
@@ -251,6 +264,58 @@ class Contract:
 @cache
 def _read_schema(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+#: A ``$ref`` that is ``<contract id>.schema.json`` names another contract.
+CONTRACT_REF_SUFFIX = ".schema.json"
+
+
+def is_contract_ref(ref: str) -> bool:
+    """Whether *ref* names another contract rather than a ``$defs`` entry."""
+    return ref.endswith(CONTRACT_REF_SUFFIX) and "#" not in ref
+
+
+def bundle_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """*schema* with every cross-contract ``$ref`` inlined as a ``$defs`` entry.
+
+    A schema that references a shared vocabulary by its file name cannot be
+    validated by a reader that has only that one file: ``jsonschema`` would try
+    to fetch ``https://schemas.cyberwave.com/<id>.schema.json``. The bundled form
+    needs no resolver, so it is what the contracts API serves and what a test
+    hands to ``jsonschema``. The source files stay as written, with the reference.
+    """
+    bundled = deepcopy(schema)
+    defs: dict[str, Any] = {}
+
+    def rewrite(node: Any) -> None:
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            if isinstance(ref, str) and is_contract_ref(ref):
+                name = ref.removesuffix(CONTRACT_REF_SUFFIX).replace(".", "_")
+                node["$ref"] = f"#/$defs/{name}"
+                if name not in defs:
+                    # Reserved first, so a reference cycle terminates.
+                    defs[name] = {}
+                    target = deepcopy(_read_schema(SCHEMAS_DIR / ref))
+                    if "$defs" in target:
+                        # Its local `#/$defs/...` refs would point at the wrong root.
+                        raise ValueError(
+                            f"{ref}: a referenced vocabulary cannot have $defs"
+                        )
+                    target.pop("$schema", None)
+                    target.pop("$id", None)
+                    rewrite(target)
+                    defs[name] = target
+            for value in node.values():
+                rewrite(value)
+        elif isinstance(node, list):
+            for value in node:
+                rewrite(value)
+
+    rewrite(bundled)
+    if defs:
+        bundled["$defs"] = {**bundled.get("$defs", {}), **defs}
+    return bundled
 
 
 @lru_cache(maxsize=1)

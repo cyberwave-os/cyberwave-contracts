@@ -102,6 +102,14 @@ def test_an_integer_is_a_number() -> None:
     assert incompatibilities({"type": "integer"}, {"type": "number"})
 
 
+def test_a_shared_vocabulary_reference_is_not_followed() -> None:
+    schema = {
+        "type": "object",
+        "properties": {"orientation": {"$ref": "common.quaternion.v1.schema.json"}},
+    }
+    assert incompatibilities(schema, schema) == []
+
+
 def test_recursive_definitions_terminate() -> None:
     schema = {
         "$ref": "#/$defs/node",
