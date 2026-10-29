@@ -7,6 +7,9 @@ monorepo, so the freshness check skips in the public contracts repository.
 
 from __future__ import annotations
 
+import sys
+import types
+
 import pytest
 
 from cyberwave_contracts import _sdk_types
@@ -41,3 +44,21 @@ def test_a_schema_it_cannot_type_is_refused() -> None:
 
 def test_catalog_key_reaches_the_sdk_from_the_contract() -> None:
     assert '"catalog_key"' in _sdk_types.render()
+
+
+def test_required_keys_survive_at_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A real module, not a bare exec namespace: TypedDict resolves its annotations
+    # through sys.modules[cls.__module__].
+    module = types.ModuleType("generated_sdk_types")
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    # dont_inherit: this test module's own `from __future__ import annotations`
+    # would otherwise apply to the generated source and hide the bug under test.
+    code = compile(_sdk_types.render(), module.__name__, "exec", dont_inherit=True)
+    exec(code, module.__dict__)  # noqa: S102 -- our own generated source
+
+    assert module.PolicyRefPayload.__required_keys__ == {"kind", "value"}
+    assert module.ControlRuntimeTargetPayload.__required_keys__ == {
+        "backend",
+        "enabled",
+        "runtime_kind",
+    }

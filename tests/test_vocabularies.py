@@ -88,6 +88,52 @@ def test_a_reference_is_the_shared_model_not_a_copy() -> None:
         )
 
 
+def test_vector3_is_shared_not_copied() -> None:
+    vector3 = MODELS_BY_CONTRACT_ID["common.vector3.v1"]
+
+    for contract_id in (
+        "environment.waypoint.v1",
+        "environment.area.v1",
+        "environment.procedural_primitive.v1",
+    ):
+        assert MODELS_BY_CONTRACT_ID[contract_id].model_fields[
+            "position"
+        ].annotation is (vector3), contract_id
+    for contract_id in ("environment.area.v1", "environment.procedural_primitive.v1"):
+        assert MODELS_BY_CONTRACT_ID[contract_id].model_fields["size"].annotation is (
+            vector3
+        ), contract_id
+    with pytest.raises(ValidationError):
+        vector3.model_validate({"x": 1, "y": 2})
+
+
+def test_pose_keeps_its_own_open_position() -> None:
+    """`common.pose.v1` was published with an open inline position.
+
+    Pointing it at the closed vector3 would close what it already accepts, which
+    the compatibility check refuses without a v2, so it stays inline.
+    """
+    pose = MODELS_BY_CONTRACT_ID["common.pose.v1"]
+    assert (
+        pose.model_fields["position"].annotation
+        is not (MODELS_BY_CONTRACT_ID["common.vector3.v1"])
+    )
+
+
+def test_vector3_is_closed() -> None:
+    """A stray key in a position is a mistake, not a later version's field.
+
+    Three numbers have nothing to extend, and opening a closed schema later is
+    compatible while closing an open one is not, so this is decided up front.
+    """
+    vector3 = MODELS_BY_CONTRACT_ID["common.vector3.v1"]
+
+    assert vector3.model_validate({"x": 1, "y": 2, "z": 3})
+    for extra in ({"w": 1}, {"xx": 0}, {"unit": "m"}):
+        with pytest.raises(ValidationError):
+            vector3.model_validate({"x": 1, "y": 2, "z": 3, **extra})
+
+
 def test_the_referencing_module_imports_the_vocabulary() -> None:
     source = generate_all()["common_pose_v1.py"]
 

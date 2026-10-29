@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/environment.waypoint.v1.schema.json",
+  "title": "Environment waypoint",
+  "description": "A named navigation point as stored for an environment: the row's columns and payload, before any read-time defaults. A missing or null pose column is reported, because readers silently turn it into zero.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "position",
+    "rotation"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable id, unique within the environment and type."
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name. May be empty: readers then show a numbered fallback."
+    },
+    "position": {
+      "$ref": "common.vector3.v1.schema.json",
+      "description": "Position in the environment frame, metres."
+    },
+    "rotation": {
+      "$ref": "common.quaternion.v1.schema.json",
+      "description": "Orientation as a quaternion. Writers are expected to keep it unit length; the schema cannot say so."
+    },
+    "metadata": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "description": "Open user data."
+    },
+    "collection": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Name of the collection the waypoint belongs to."
+    },
+    "frame": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Frame the pose is expressed in. Absent or null means the environment frame.",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "twin_link",
+            "waypoint"
+          ],
+          "description": "What the pose is relative to."
+        },
+        "twin_uuid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Twin the link belongs to."
+        },
+        "link": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Link of that twin."
+        },
+        "waypoint_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Parent waypoint."
+        }
+      }
+    },
+    "motion_space": {
+      "enum": [
+        "surface",
+        "free_space"
+      ],
+      "description": "Whether the pose is on a surface or free in space."
+    }
+  }
+}

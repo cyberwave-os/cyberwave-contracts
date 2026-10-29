@@ -36,7 +36,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from cyberwave_contracts.manifest import SCHEMAS_RELATIVE, SECTIONS_RELATIVE
+from cyberwave_contracts.manifest import (
+    SCHEMAS_DIR,
+    SCHEMAS_RELATIVE,
+    SECTIONS_RELATIVE,
+)
 
 #: Bounds a reader may only relax, each with the test for "the writer was looser".
 _BOUNDS = {
@@ -69,12 +73,35 @@ def _resolve(
     if not ref:
         return spec, None
     if not ref.startswith("#/$defs/"):
-        raise ValueError(f"only #/$defs/ refs are supported, got {ref!r}")
+        if ref.startswith("#"):
+            raise ValueError(f"only #/$defs/ refs are supported, got {ref!r}")
+        return _shared_vocabulary(spec, ref), None
     name = ref.removeprefix("#/$defs/")
     target = {**document.get("$defs", {}).get(name, {})}
     # Sibling keywords of a $ref (readOnly, description) apply alongside it.
     target.update({k: v for k, v in spec.items() if k != "$ref"})
     return target, name
+
+
+def _shared_vocabulary(spec: dict[str, Any], ref: str) -> dict[str, Any]:
+    """The schema a ``$ref`` to a shared vocabulary names, from this checkout.
+
+    Reached only when the two sides disagree about the reference: one spells the
+    value inline and the other refers to the vocabulary (a change that moves a
+    copy onto the shared contract). The vocabulary is compared as itself
+    elsewhere, so here it only stands in for what the reference admits. A
+    vocabulary with its own ``$defs`` would need its document threaded through,
+    which none does; it is refused rather than resolved against the wrong file.
+    """
+    path = SCHEMAS_DIR / ref
+    if not path.is_file():
+        raise ValueError(f"{ref!r} is not a shared vocabulary in this checkout")
+    target = json.loads(path.read_text(encoding="utf-8"))
+    if "$defs" in target:
+        raise ValueError(f"{ref!r} has $defs, which this check does not follow")
+    target = {k: v for k, v in target.items() if k not in ("$schema", "$id")}
+    target.update({k: v for k, v in spec.items() if k != "$ref"})
+    return target
 
 
 def incompatibilities(

@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 import sys
 import types
-from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -138,12 +137,23 @@ def test_bundle_file_path_pattern_matches_the_helper(path: str, value: bool) -> 
     assert accepted is value is is_confined_relative_path(path)
 
 
-def test_generated_class_names_are_unique_across_modules() -> None:
-    # models/__init__ flattens every module into one namespace.
-    names = Counter(
-        name for g in _generate._run_all().values() for name in g.class_names
-    )
-    assert [n for n, c in names.items() if c > 1] == []
+def test_the_models_index_refuses_two_contracts_with_one_class_name() -> None:
+    def contract(name: str, prop: str) -> _generate.Generator:
+        schema = {
+            "$id": f"https://schemas.cyberwave.com/{name}.v1.schema.json",
+            "type": "object",
+            "properties": {"p": {"$ref": "#/$defs/view"}},
+            "$defs": {
+                "view": {"type": "object", "properties": {prop: {"type": "string"}}}
+            },
+        }
+        generator = _generate.Generator(schema)
+        generator.run()
+        return generator
+
+    generators = {"a.x.v1": contract("a.x", "k"), "b.x.v1": contract("b.x", "n")}
+    with pytest.raises(_generate.UnsupportedConstruct, match="class View"):
+        _generate.render_init(generators)
 
 
 # -- generator features ---------------------------------------------------------------

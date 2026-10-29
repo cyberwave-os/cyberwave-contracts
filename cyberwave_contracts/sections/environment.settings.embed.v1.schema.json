@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/environment.settings.embed.v1.schema.json",
+  "title": "Environment live embed",
+  "description": "Configuration of an environment's public live embed: whether it is on, whether it shows the 3D scene or one camera sensor, and the 3D camera pose. Written by update_embed. Rules kept in Python: only sharing administrators change enabled; enabling needs camera; in sensor mode twin_uuid must be a twin of this environment and sensor_id one of its rgb or depth sensors.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["enabled", "mode"],
+  "properties": {
+    "enabled": { "type": "boolean", "description": "Whether the embed link is live." },
+    "mode": { "enum": ["3d", "sensor"], "description": "The 3D scene or a single camera sensor." },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position", "target"],
+      "description": "3D camera pose in the environment frame.",
+      "properties": {
+        "position": { "$ref": "#/$defs/vec3" },
+        "target": { "$ref": "#/$defs/vec3" }
+      }
+    },
+    "twin_uuid": { "type": "string", "description": "Camera twin in this environment; used in sensor mode." },
+    "sensor_id": { "type": "string", "description": "Sensor of that twin; used in sensor mode." },
+    "link_uuid": { "type": "string", "readOnly": true, "description": "The reader link share the server created when the embed was enabled." }
+  },
+  "$defs": {
+    "vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }
+  }
+}

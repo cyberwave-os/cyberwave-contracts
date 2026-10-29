@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/environment.settings.pinned_layout.v1.schema.json",
+  "title": "Environment pinned layout",
+  "description": "The shared workspace layout of an environment: which twin and map views are pinned. It names twins and maps by uuid and grants no control. Written by PUT /environments/{uuid}/pinned-layout. Rules kept in Python: each twinItems key equals its views' twinUuid, twins and maps belong to the environment, routeId is a manual control route, sensorId applies to camera views and routeId to route views, views are not repeated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "name", "items"],
+  "properties": {
+    "version": { "enum": [1], "description": "Version of the layout. An enum, not a const: a stored layout of another version is reported, not refused, so the shared-layout remove can still answer it with its own 409." },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/view" } },
+    "twinItems": {
+      "type": "object",
+      "description": "Views for one twin, keyed by twin uuid. Omitted when empty; an empty list hides every view of that twin.",
+      "additionalProperties": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/view" } }
+    }
+  },
+  "$defs": {
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["control", "camera", "audio", "route", "vehicle", "commands", "map"] },
+        "twinUuid": { "type": "string", "description": "Every kind except map." },
+        "mapUuid": { "type": "string", "description": "The map kind only." },
+        "sensorId": { "type": "string", "maxLength": 128, "description": "Camera views only." },
+        "routeId": { "type": "string", "maxLength": 128, "description": "Route views only; required there." }
+      }
+    }
+  }
+}

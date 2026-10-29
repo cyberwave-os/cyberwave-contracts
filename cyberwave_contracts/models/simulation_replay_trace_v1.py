@@ -8,6 +8,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from cyberwave_contracts.models._scalars import Boolean, Integer, Number
 
+from cyberwave_contracts.models.common_quaternion_v1 import CommonQuaternionV1
+
+from cyberwave_contracts.models.common_vector3_v1 import CommonVector3V1
+
 
 class SimulationReplayTraceV1Physics(BaseModel):
     """SimulationReplayTraceV1Physics
@@ -315,54 +319,13 @@ class ReplayTraceSensorRecord(BaseModel):
     values: dict[str, Any] | None = None
 
 
-class ReplayTraceStateRecordBasePosePosition(BaseModel):
-    """ReplayTraceStateRecordBasePosePosition"""
-
-    model_config = ConfigDict(extra="allow")
-
-    x: Number = ...
-    y: Number = ...
-    z: Number = ...
-
-
-class ReplayTraceStateRecordBasePoseRotation(BaseModel):
-    """ReplayTraceStateRecordBasePoseRotation"""
-
-    model_config = ConfigDict(extra="allow")
-
-    w: Number = ...
-    x: Number = ...
-    y: Number = ...
-    z: Number = ...
-
-
 class ReplayTraceStateRecordBasePose(BaseModel):
     """ReplayTraceStateRecordBasePose"""
 
     model_config = ConfigDict(extra="allow")
 
-    position: ReplayTraceStateRecordBasePosePosition = ...
-    rotation: ReplayTraceStateRecordBasePoseRotation = ...
-
-
-class ReplayTraceStateRecordBaseTwistAngular(BaseModel):
-    """ReplayTraceStateRecordBaseTwistAngular"""
-
-    model_config = ConfigDict(extra="allow")
-
-    x: Number = ...
-    y: Number = ...
-    z: Number = ...
-
-
-class ReplayTraceStateRecordBaseTwistLinear(BaseModel):
-    """ReplayTraceStateRecordBaseTwistLinear"""
-
-    model_config = ConfigDict(extra="allow")
-
-    x: Number = ...
-    y: Number = ...
-    z: Number = ...
+    position: CommonVector3V1 = ...
+    rotation: CommonQuaternionV1 = ...
 
 
 class ReplayTraceStateRecordBaseTwist(BaseModel):
@@ -370,8 +333,8 @@ class ReplayTraceStateRecordBaseTwist(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    angular: ReplayTraceStateRecordBaseTwistAngular = ...
-    linear: ReplayTraceStateRecordBaseTwistLinear = ...
+    angular: CommonVector3V1 = ...
+    linear: CommonVector3V1 = ...
 
 
 class ReplayTraceStateRecordBase(BaseModel):

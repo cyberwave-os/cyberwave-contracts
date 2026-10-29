@@ -41,8 +41,55 @@ from cyberwave_contracts.models.common_simulation_backend_v1 import (
 from cyberwave_contracts.models.common_simulation_engine_v1 import (
     CommonSimulationEngineV1,
 )
+from cyberwave_contracts.models.common_vector3_v1 import (
+    CommonVector3V1,
+)
+from cyberwave_contracts.models.environment_area_v1 import (
+    EnvironmentAreaV1,
+    EnvironmentAreaV1Source,
+)
+from cyberwave_contracts.models.environment_procedural_primitive_v1 import (
+    EnvironmentProceduralPrimitiveV1,
+)
+from cyberwave_contracts.models.environment_settings_embed_v1 import (
+    EnvironmentSettingsEmbedV1,
+    EnvironmentSettingsEmbedV1Camera,
+)
 from cyberwave_contracts.models.environment_settings_geo_v1 import (
     EnvironmentSettingsGeoV1,
+)
+from cyberwave_contracts.models.environment_settings_missions_v1 import (
+    EnvironmentSettingsMissionsV1,
+    Mission,
+    NavigationPlan,
+    Waypoint,
+    WaypointGeodeticPosition,
+)
+from cyberwave_contracts.models.environment_settings_pinned_layout_v1 import (
+    EnvironmentSettingsPinnedLayoutV1,
+    View,
+)
+from cyberwave_contracts.models.environment_settings_simulator_v1 import (
+    EnvironmentSettingsSimulatorV1,
+)
+from cyberwave_contracts.models.environment_settings_twin_motion_v1 import (
+    Animation,
+    AnimationSteps,
+    EnvironmentSettingsTwinMotionV1,
+    Keyframe,
+    TwinMotion,
+)
+from cyberwave_contracts.models.environment_settings_waypoint_collection_view_v1 import (
+    Entry,
+    EnvironmentSettingsWaypointCollectionViewV1,
+)
+from cyberwave_contracts.models.environment_update_notice_v1 import (
+    EnvironmentUpdateNoticeV1,
+    UpdateData,
+)
+from cyberwave_contracts.models.environment_waypoint_v1 import (
+    EnvironmentWaypointV1,
+    EnvironmentWaypointV1Frame,
 )
 from cyberwave_contracts.models.locomotion_velocity_command_v1 import (
     LocomotionVelocityCommandV1,
@@ -78,11 +125,7 @@ from cyberwave_contracts.models.simulation_replay_trace_v1 import (
     ReplayTraceStateRecord,
     ReplayTraceStateRecordBase,
     ReplayTraceStateRecordBasePose,
-    ReplayTraceStateRecordBasePosePosition,
-    ReplayTraceStateRecordBasePoseRotation,
     ReplayTraceStateRecordBaseTwist,
-    ReplayTraceStateRecordBaseTwistAngular,
-    ReplayTraceStateRecordBaseTwistLinear,
     SimulationReplayTraceV1,
     SimulationReplayTraceV1Physics,
     SimulationReplayTraceV1Run,
@@ -161,7 +204,18 @@ MODELS_BY_CONTRACT_ID = {
     "common.runtime_target.v1": CommonRuntimeTargetV1,
     "common.simulation_backend.v1": CommonSimulationBackendV1,
     "common.simulation_engine.v1": CommonSimulationEngineV1,
+    "common.vector3.v1": CommonVector3V1,
+    "environment.area.v1": EnvironmentAreaV1,
+    "environment.procedural_primitive.v1": EnvironmentProceduralPrimitiveV1,
+    "environment.settings.embed.v1": EnvironmentSettingsEmbedV1,
     "environment.settings.geo.v1": EnvironmentSettingsGeoV1,
+    "environment.settings.missions.v1": EnvironmentSettingsMissionsV1,
+    "environment.settings.pinned_layout.v1": EnvironmentSettingsPinnedLayoutV1,
+    "environment.settings.simulator.v1": EnvironmentSettingsSimulatorV1,
+    "environment.settings.twin_motion.v1": EnvironmentSettingsTwinMotionV1,
+    "environment.settings.waypoint_collection_view.v1": EnvironmentSettingsWaypointCollectionViewV1,
+    "environment.update_notice.v1": EnvironmentUpdateNoticeV1,
+    "environment.waypoint.v1": EnvironmentWaypointV1,
     "locomotion.velocity_command.v1": LocomotionVelocityCommandV1,
     "policy_artifact_manifest.v1": PolicyArtifactManifestV1,
     "simulation.compatibility_attestation.v1": SimulationCompatibilityAttestationV1,
@@ -181,6 +235,8 @@ MODELS_BY_CONTRACT_ID = {
 __all__ = [
     "AerialMissionV1",
     "AerialVelocityCommandV1",
+    "Animation",
+    "AnimationSteps",
     "ArtifactFile",
     "CommonContractIdV1",
     "CommonControllerRefV1",
@@ -191,11 +247,29 @@ __all__ = [
     "CommonRuntimeTargetV1",
     "CommonSimulationBackendV1",
     "CommonSimulationEngineV1",
+    "CommonVector3V1",
+    "Entry",
+    "EnvironmentAreaV1",
+    "EnvironmentAreaV1Source",
+    "EnvironmentProceduralPrimitiveV1",
+    "EnvironmentSettingsEmbedV1",
+    "EnvironmentSettingsEmbedV1Camera",
     "EnvironmentSettingsGeoV1",
+    "EnvironmentSettingsMissionsV1",
+    "EnvironmentSettingsPinnedLayoutV1",
+    "EnvironmentSettingsSimulatorV1",
+    "EnvironmentSettingsTwinMotionV1",
+    "EnvironmentSettingsWaypointCollectionViewV1",
+    "EnvironmentUpdateNoticeV1",
+    "EnvironmentWaypointV1",
+    "EnvironmentWaypointV1Frame",
+    "Keyframe",
     "LocomotionVelocityCommandV1",
     "MODELS_BY_CONTRACT_ID",
+    "Mission",
     "MissionHome",
     "MissionItem",
+    "NavigationPlan",
     "PolicyArtifactManifestV1",
     "PolicyBinding",
     "PolicyBindingPolicyConfig",
@@ -211,11 +285,7 @@ __all__ = [
     "ReplayTraceStateRecord",
     "ReplayTraceStateRecordBase",
     "ReplayTraceStateRecordBasePose",
-    "ReplayTraceStateRecordBasePosePosition",
-    "ReplayTraceStateRecordBasePoseRotation",
     "ReplayTraceStateRecordBaseTwist",
-    "ReplayTraceStateRecordBaseTwistAngular",
-    "ReplayTraceStateRecordBaseTwistLinear",
     "RuntimeAuditMismatch",
     "SceneBundleFile",
     "SceneBundleFinding",
@@ -268,4 +338,9 @@ __all__ = [
     "TwinFlightControllerV1Mission",
     "TwinFlightControllerV1StatusTexts",
     "TwinFlightStateV1",
+    "TwinMotion",
+    "UpdateData",
+    "View",
+    "Waypoint",
+    "WaypointGeodeticPosition",
 ]

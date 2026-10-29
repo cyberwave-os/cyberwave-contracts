@@ -70,7 +70,7 @@ from cyberwave_contracts.source_type import (
     source_types_where,
 )
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 __all__ = [
     "MANIFEST_PATH",

@@ -110,6 +110,36 @@ def test_a_shared_vocabulary_reference_is_not_followed() -> None:
     assert incompatibilities(schema, schema) == []
 
 
+def test_a_closed_inline_copy_moving_to_the_shared_vocabulary_is_compatible() -> None:
+    inline = {
+        "type": "object",
+        "required": ["x", "y", "z"],
+        "additionalProperties": False,
+        "properties": {axis: {"type": "number"} for axis in "xyz"},
+    }
+    shared = {"$ref": "common.vector3.v1.schema.json"}
+    assert incompatibilities(shared, inline) == []
+    assert incompatibilities(inline, shared) == []
+
+
+def test_an_open_inline_copy_cannot_move_onto_the_closed_vocabulary() -> None:
+    """`common.vector3.v1` is closed, so an open copy would lose what it accepted."""
+    inline = {
+        "type": "object",
+        "required": ["x", "y", "z"],
+        "additionalProperties": True,
+        "properties": {axis: {"type": "number"} for axis in "xyz"},
+    }
+    shared = {"$ref": "common.vector3.v1.schema.json"}
+    assert any("closed to properties" in p for p in incompatibilities(shared, inline))
+
+
+def test_moving_onto_the_vocabulary_cannot_narrow_what_was_accepted() -> None:
+    loose = {"type": "object", "properties": {"x": {"type": "number"}}}
+    shared = {"$ref": "common.vector3.v1.schema.json"}
+    assert incompatibilities(shared, loose)
+
+
 def test_recursive_definitions_terminate() -> None:
     schema = {
         "$ref": "#/$defs/node",

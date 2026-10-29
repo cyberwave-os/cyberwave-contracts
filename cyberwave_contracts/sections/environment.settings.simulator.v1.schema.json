@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/environment.settings.simulator.v1.schema.json",
+  "title": "Environment default simulator",
+  "description": "The engine an environment's simulation starts on when a start request names none; unset means mujoco, and a start request's own backend overrides it. Stored as a bare string. Rows written before the contract may hold the alias mjwarp, playground, an empty string or different casing; observe mode reports them.",
+  "$ref": "common.simulation_engine.v1.schema.json"
+}

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/environment.area.v1.schema.json",
+  "title": "Environment area",
+  "description": "A semantic zone as stored: a box area, or an operating area that also carries geodetic geometry and an altitude band.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "position",
+    "size",
+    "rotation"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable id, unique within the environment and type."
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name. May be empty: readers then show a numbered fallback."
+    },
+    "position": {
+      "$ref": "common.vector3.v1.schema.json",
+      "description": "Position in the environment frame, metres."
+    },
+    "rotation": {
+      "$ref": "common.quaternion.v1.schema.json",
+      "description": "Orientation as a quaternion. Writers are expected to keep it unit length; the schema cannot say so."
+    },
+    "metadata": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "description": "Open user data."
+    },
+    "size": {
+      "$ref": "common.vector3.v1.schema.json",
+      "description": "Box extents along the world axes, metres."
+    },
+    "visible": {
+      "type": "boolean",
+      "description": "Whether the area is drawn."
+    },
+    "locked": {
+      "type": "boolean",
+      "description": "Whether the editor refuses to move it."
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Geodetic polygon of an operating area (type, vertices, holes). Its ring rules stay with the platform."
+    },
+    "role": {
+      "type": "string",
+      "description": "Operating-area role. The allowed values stay with the platform."
+    },
+    "altitude_reference": {
+      "enum": [
+        "geo_anchor"
+      ],
+      "description": "What floor_m and ceiling_m are measured from."
+    },
+    "floor_m": {
+      "type": "number",
+      "description": "Lower altitude bound, metres above the geo anchor."
+    },
+    "ceiling_m": {
+      "type": "number",
+      "description": "Upper altitude bound, metres above the geo anchor."
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "name"
+      ],
+      "description": "Where an imported area came from.",
+      "properties": {
+        "format": {
+          "enum": [
+            "kml",
+            "geojson",
+            "manual"
+          ],
+          "description": "Import format."
+        },
+        "name": {
+          "type": "string",
+          "description": "Source file or layer name."
+        }
+      }
+    }
+  }
+}

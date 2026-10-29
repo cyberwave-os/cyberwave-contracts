@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/environment.settings.missions.v1.schema.json",
+  "title": "Environment editor missions",
+  "description": "Waypoint paths authored in the environment editor: one list for every twin, filtered by twinUuid. Frontend-authored. Not the table-backed Mission model, and its waypoints are inline navigation waypoints, not environment waypoint objects. At most one mission per twin is active, which only the editor enforces.",
+  "type": "array",
+  "items": { "$ref": "#/$defs/mission" },
+  "$defs": {
+    "mission": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "name", "twinUuid"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "twinUuid": { "type": "string" },
+        "createdAt": { "type": "string", "description": "ISO 8601." },
+        "isActive": { "type": "boolean" },
+        "navigation": { "$ref": "#/$defs/navigationPlan" },
+        "waypoints": { "type": "array", "items": { "$ref": "#/$defs/waypoint" }, "description": "Legacy home of the waypoints; read when navigation is absent and cleared on the next edit." }
+      }
+    },
+    "navigationPlan": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["waypoints"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "controller_policy_uuid": { "type": ["string", "null"] },
+        "reference_frame": { "type": ["string", "null"] },
+        "waypoints": { "type": "array", "items": { "$ref": "#/$defs/waypoint" } },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "waypoint": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "position": { "anyOf": [{ "$ref": "common.vector3.v1.schema.json" }, { "type": "null" }] },
+        "geodetic_position": { "type": ["object", "null"], "additionalProperties": false, "required": ["latitude", "longitude", "altitude"], "properties": { "latitude": { "type": "number" }, "longitude": { "type": "number" }, "altitude": { "type": "number" } } },
+        "rotation": { "anyOf": [{ "$ref": "common.quaternion.v1.schema.json" }, { "type": "null" }] },
+        "orientation": { "type": ["object", "null"], "additionalProperties": true },
+        "yaw": { "type": ["number", "null"], "description": "Legacy; the editor drops it on save." },
+        "duration_seconds": { "type": ["number", "null"] },
+        "metadata": { "type": ["object", "null"], "additionalProperties": true }
+      }
+    }
+  }
+}

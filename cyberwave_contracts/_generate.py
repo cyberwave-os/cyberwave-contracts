@@ -112,6 +112,29 @@ def _unmodelled(spec: dict[str, Any], *, root: bool = False) -> list[str]:
     return sorted(k for k in spec if k not in allowed and not k.startswith("x-"))
 
 
+def _is_container_root(spec: dict[str, Any]) -> bool:
+    """A root that is a list, a reference to a vocabulary, or a map with no properties."""
+    return (
+        spec.get("type") == "array"
+        or "$ref" in spec
+        or (
+            not _declares_object_properties(spec)
+            and isinstance(spec.get("additionalProperties"), dict)
+        )
+    )
+
+
+def _class_docstring(spec: dict[str, Any], name: str) -> str:
+    """The class docstring for a root model: the schema title, then its description."""
+    title = spec.get("title", name)
+    description = spec.get("description", "")
+    return (
+        f'    """{title}\n\n    {description}\n    """\n'
+        if description
+        else f'    """{title}"""\n'
+    )
+
+
 #: Regex constructs that a JSON Schema validator (ECMA-262) and pydantic's default
 #: Rust ``regex`` engine do not both honour. pydantic silently falls back to
 #: Python's ``re`` for some of them, which is a third dialect; a pattern that
@@ -248,7 +271,12 @@ class Generator:
         name = ref.removeprefix("#/$defs/")
         if name not in self.defs:
             raise UnsupportedConstruct(f"{ref!r} does not resolve")
-        return self._emit_object(_pascal(name), self.defs[name])
+        target = self.defs[name]
+        if not _declares_object_properties(target):
+            # A list, a scalar or a map has no class: emitting one would be an empty
+            # extra="allow" model that accepts anything. Use the type it describes.
+            return self._element(name, target, "")
+        return self._emit_object(_pascal(name), target)
 
     def _contract_ref(self, ref: str) -> str:
         """A ``$ref`` to another contract's root, e.g. ``common.controller_ref.v1.schema.json``.
@@ -336,6 +364,8 @@ class Generator:
         if isinstance(json_type, list):
             members = [t for t in json_type if t != "null"]
             nullable = "null" in json_type
+            if len(members) > 1:
+                return self._type_union(prop, spec, members, nullable, owner), constraints
             if len(members) != 1:
                 raise UnsupportedConstruct(f"{prop}: unsupported union {json_type!r}")
             json_type = members[0]
@@ -401,6 +431,47 @@ class Generator:
         if nullable:
             annotation = f"{annotation} | None"
         return annotation, constraints
+
+    def _type_union(
+        self,
+        prop: str,
+        spec: dict[str, Any],
+        members: list[str],
+        nullable: bool,
+        owner: str,
+    ) -> str:
+        """``"type": ["string", "array"]``: one annotation per member, joined.
+
+        Each member is annotated as if it were the whole type. A bound or pattern
+        has no single member to attach to (``minimum`` means nothing to the string
+        member), so a union that carries one is refused rather than guessed at.
+        ``items`` and ``properties`` ride with the member they describe.
+        """
+        bounded = sorted(
+            k
+            for k in (
+                *_STRING_CONSTRAINTS,
+                *_ARRAY_CONSTRAINTS,
+                "pattern",
+                "minimum",
+                "maximum",
+                "exclusiveMinimum",
+                "exclusiveMaximum",
+            )
+            if k in spec
+        )
+        if bounded:
+            raise UnsupportedConstruct(
+                f"{prop}: a type union cannot carry {bounded}; they would apply "
+                "to one member and be dropped for the others"
+            )
+        parts = [
+            self._annotation(prop, {**spec, "type": member}, owner)[0]
+            for member in members
+        ]
+        if nullable:
+            parts.append("None")
+        return " | ".join(parts)
 
     def _refuse_misplaced_lengths(self, prop: str, spec: dict[str, Any]) -> None:
         """String keywords on a non-string, array keywords on a non-array.
@@ -702,22 +773,49 @@ class Generator:
         if len(set(values)) != len(values):
             raise UnsupportedConstruct(f"{name}: enum lists a value twice")
         literal = ", ".join(repr(v) for v in values)
-        title = spec.get("title", name)
-        description = spec.get("description", "")
-        docstring = (
-            f'    """{title}\n\n    {description}\n    """\n'
-            if description
-            else f'    """{title}"""\n'
-        )
+        docstring = _class_docstring(spec, name)
         self.class_names.append(name)
         self.classes.append(
             f"class {name}(RootModel[Literal[{literal}]]):\n{docstring}"
+        )
+
+    def _emit_container_root(self, name: str, spec: dict[str, Any]) -> None:
+        """A section whose root is a list, a shared vocabulary, or a map of free keys.
+
+        ``Environment.settings.missions`` is stored as a list and
+        ``twin_motion`` as a map keyed by twin uuid, so neither has a root object
+        to hang properties on. A ``RootModel`` keeps the contract id mapping to
+        something with ``model_validate``; the element type is built by the same
+        code a property goes through, so its bounds are enforced, not widened.
+        """
+        if unknown := _unmodelled(spec, root=True):
+            raise UnsupportedConstruct(
+                f"{name}: schema uses {unknown}, which this generator does not model."
+            )
+        shape = {
+            k: v
+            for k, v in spec.items()
+            if k not in _DOCUMENT_KEYWORDS | {"title", "description", "$defs"}
+        }
+        is_array = shape.get("type") == "array"
+        if is_array and "items" not in shape:
+            raise UnsupportedConstruct(f"{name}: array without items")
+        annotation, constraints = self._annotation(
+            "items" if is_array else "values", shape, name
+        )
+        if constraints:
+            annotation = f"Annotated[{annotation}, Field({', '.join(constraints)})]"
+        self.class_names.append(name)
+        self.classes.append(
+            f"class {name}(RootModel[{annotation}]):\n{_class_docstring(spec, name)}"
         )
 
     def run(self) -> str:
         self.root_class = _pascal(self.contract_id)
         if "enum" in self.schema:
             self._emit_enum_root(self.root_class, self.schema)
+        elif _is_container_root(self.schema):
+            self._emit_container_root(self.root_class, self.schema)
         else:
             self._emit_object(self.root_class, self.schema, root=True)
         # A $def the root never references is still part of the contract: a
@@ -817,6 +915,16 @@ def render_init(generators: dict[str, Generator]) -> str:
     the modules beside them.
     """
     ordered = sorted(generators.items())
+    owners: dict[str, str] = {}
+    for contract_id, generator in ordered:
+        for name in generator.class_names:
+            other = owners.setdefault(name, contract_id)
+            if other != contract_id:
+                # The index flattens every module into one namespace, so the second
+                # import would silently replace the first. Rename one `$defs` entry.
+                raise UnsupportedConstruct(
+                    f"class {name} is generated by both {other} and {contract_id}"
+                )
     quote = '"""'
     imports = "\n".join(
         f"from cyberwave_contracts.models.{_module_stem(contract_id)} import ("

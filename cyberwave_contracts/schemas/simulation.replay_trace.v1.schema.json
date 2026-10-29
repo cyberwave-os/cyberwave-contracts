@@ -431,48 +431,10 @@
               ],
               "properties": {
                 "position": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "required": [
-                    "x",
-                    "y",
-                    "z"
-                  ],
-                  "properties": {
-                    "x": {
-                      "type": "number"
-                    },
-                    "y": {
-                      "type": "number"
-                    },
-                    "z": {
-                      "type": "number"
-                    }
-                  }
+                  "$ref": "common.vector3.v1.schema.json"
                 },
                 "rotation": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "required": [
-                    "w",
-                    "x",
-                    "y",
-                    "z"
-                  ],
-                  "properties": {
-                    "w": {
-                      "type": "number"
-                    },
-                    "x": {
-                      "type": "number"
-                    },
-                    "y": {
-                      "type": "number"
-                    },
-                    "z": {
-                      "type": "number"
-                    }
-                  }
+                  "$ref": "common.quaternion.v1.schema.json"
                 }
               }
             },
@@ -488,44 +450,10 @@
               ],
               "properties": {
                 "linear": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "required": [
-                    "x",
-                    "y",
-                    "z"
-                  ],
-                  "properties": {
-                    "x": {
-                      "type": "number"
-                    },
-                    "y": {
-                      "type": "number"
-                    },
-                    "z": {
-                      "type": "number"
-                    }
-                  }
+                  "$ref": "common.vector3.v1.schema.json"
                 },
                 "angular": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "required": [
-                    "x",
-                    "y",
-                    "z"
-                  ],
-                  "properties": {
-                    "x": {
-                      "type": "number"
-                    },
-                    "y": {
-                      "type": "number"
-                    },
-                    "z": {
-                      "type": "number"
-                    }
-                  }
+                  "$ref": "common.vector3.v1.schema.json"
                 }
               }
             }

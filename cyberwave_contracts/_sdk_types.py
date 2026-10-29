@@ -87,7 +87,9 @@ def render() -> str:
     return (
         f"# !! GENERATED from {sources} -- do not edit.\n"
         "# Run `make -C cyberwave-contracts models` in the monorepo to regenerate.\n\n"
-        "from __future__ import annotations\n\n"
+        # No `from __future__ import annotations`: it stores the annotations as
+        # strings, and typing_extensions then cannot tell which keys are Required,
+        # so `__required_keys__` comes out empty on every Python version.
         f"from typing import {', '.join(typing_names)}\n\n"
         "from typing_extensions import NotRequired, Required, TypedDict\n\n\n" + body
     )

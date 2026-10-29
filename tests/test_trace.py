@@ -11,6 +11,11 @@ from pathlib import Path
 import pytest
 
 from cyberwave_contracts import trace as tr
+from cyberwave_contracts.manifest import load_contracts
+
+_TRACE_CONTRACT = next(
+    c for c in load_contracts() if c.id == "simulation.replay_trace.v1"
+)
 
 FIXTURES = Path(__file__).parent / "fixtures" / "simulation"
 TRACES = FIXTURES / "traces"
@@ -598,13 +603,9 @@ def _full_header() -> dict:
 
 def _schema_errors(instance: object, definition: str | None = None) -> list:
     jsonschema = pytest.importorskip("jsonschema")
-    schema = json.loads(
-        (
-            Path(tr.__file__).parent
-            / "schemas"
-            / "simulation.replay_trace.v1.schema.json"
-        ).read_text(encoding="utf-8")
-    )
+    # Bundled: the schema references shared vocabularies (vector3, quaternion) by
+    # file name, which a bare jsonschema validator cannot fetch.
+    schema = _TRACE_CONTRACT.bundled_schema()
     if definition is not None:
         schema = {"$ref": f"#/$defs/{definition}", "$defs": schema["$defs"]}
     return list(jsonschema.Draft202012Validator(schema).iter_errors(instance))

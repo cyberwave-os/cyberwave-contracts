@@ -158,6 +158,26 @@ contracts:
         language: python
         sync: field_names
 
+  - id: common.vector3.v1
+    kind: vocabulary
+    owner: contracts
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/common.vector3.v1.schema.json
+    mirrors:
+      - path: cyberwave-backend/src/lib/mqtt_schemas.py
+        language: python
+        sync: field_names
+      - path: cyberwave-robot-format/cyberwave_robot_format/schema.py
+        language: python
+        sync: field_names
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/schema.py
+        language: python
+        sync: field_names
+      - path: common/protobuf/proto/cyberwave/geometry/v1/primitives.proto
+        language: proto
+        sync: field_names
+
   - id: common.quaternion.v1
     kind: vocabulary
     owner: contracts
@@ -574,4 +594,117 @@ contracts:
     section_kind: configuration
     schema: cyberwave-contracts/cyberwave_contracts/sections/environment.settings.geo.v1.schema.json
     python_source: cyberwave-backend/src/lib/geo_transform.py
+    mirrors: []
+
+  # The engine an environment simulates on; a bare string drawn from common.simulation_engine.v1.
+  - id: environment.settings.simulator.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: Environment.settings.simulator
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.settings.simulator.v1.schema.json
+    python_source: cyberwave-backend/src/lib/simulation_backends.py
+    mirrors: []
+
+  # Public live embed; written by update_embed, which owns the rules the schema cannot say.
+  - id: environment.settings.embed.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: Environment.settings.embed
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.settings.embed.v1.schema.json
+    python_source: cyberwave-backend/src/app/services/environment_embed.py
+    mirrors: []
+
+  # Shared workspace layout; written only by PUT /environments/{uuid}/pinned-layout.
+  - id: environment.settings.pinned_layout.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: Environment.settings.pinned_layout
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.settings.pinned_layout.v1.schema.json
+    python_source: cyberwave-backend/src/app/api/environments.py
+    mirrors: []
+
+  # Per-collection display preference; frontend-authored, no server-side validation.
+  - id: environment.settings.waypoint_collection_view.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: Environment.settings.waypoint_collection_view
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.settings.waypoint_collection_view.v1.schema.json
+    mirrors: []
+
+  # Environment-scope poses and movements per twin; frontend-authored, read by lib/motion_utils.
+  - id: environment.settings.twin_motion.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: Environment.settings.twin_motion
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.settings.twin_motion.v1.schema.json
+    python_source: cyberwave-backend/src/lib/motion_utils/resolution.py
+    mirrors: []
+
+  # Editor missions (a list); frontend-authored, no server-side reader.
+  - id: environment.settings.missions.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: Environment.settings.missions
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.settings.missions.v1.schema.json
+    mirrors: []
+
+  # Environment objects are rows, not a JSON field: the three contracts below
+  # describe an item as stored (its columns and payload together), and the
+  # location's last part is the row's object_type. The save hook does not apply;
+  # lib/environment_object_contracts.py checks the same item where it is written.
+
+  - id: environment.waypoint.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: EnvironmentObject.waypoint
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.waypoint.v1.schema.json
+    python_source: cyberwave-backend/src/lib/environment_waypoints.py
+    mirrors: []
+
+  - id: environment.area.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: EnvironmentObject.area
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.area.v1.schema.json
+    python_source: cyberwave-backend/src/lib/environment_areas.py
+    mirrors: []
+
+  - id: environment.procedural_primitive.v1
+    kind: section
+    owner: backend
+    schema_owner: json_schema
+    location: EnvironmentObject.procedural_primitive
+    section_kind: configuration
+    schema: cyberwave-contracts/cyberwave_contracts/sections/environment.procedural_primitive.v1.schema.json
+    python_source: cyberwave-backend/src/lib/environment_spatial.py
+    mirrors: []
+
+  # The one notice on the environment topic that is about the environment's own
+  # data. Identified by its topic: the four backend publishers send no contract
+  # id, and open viewers read the message as it is today.
+  - id: environment.update_notice.v1
+    kind: topic
+    owner: backend
+    schema_owner: json_schema
+    id_field: null
+    schema: cyberwave-contracts/cyberwave_contracts/schemas/environment.update_notice.v1.schema.json
+    # The publish helper the notices go through; the publishers are listed in
+    # the contract's conformance test.
+    python_source: cyberwave-backend/src/app/api/twins.py
     mirrors: []

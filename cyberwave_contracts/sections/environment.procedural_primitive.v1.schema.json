@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/environment.procedural_primitive.v1.schema.json",
+  "title": "Environment procedural primitive",
+  "description": "Compiled procedural geometry as stored: walls, racks, floor slabs and other primitives.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "primitive_type",
+    "position",
+    "size",
+    "rotation"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable id, unique within the environment and type."
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name. May be empty: readers then show a numbered fallback."
+    },
+    "position": {
+      "$ref": "common.vector3.v1.schema.json",
+      "description": "Position in the environment frame, metres."
+    },
+    "rotation": {
+      "$ref": "common.quaternion.v1.schema.json",
+      "description": "Orientation as a quaternion. Writers are expected to keep it unit length; the schema cannot say so."
+    },
+    "metadata": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "description": "Open user data."
+    },
+    "primitive_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Kind of geometry, for example box, wall or rack."
+    },
+    "template_key": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Procedural template the primitive was compiled from."
+    },
+    "template_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Version of that template."
+    },
+    "parameters": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "description": "Template parameters."
+    },
+    "compiled": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "description": "Compiled geometry the template produced."
+    },
+    "size": {
+      "$ref": "common.vector3.v1.schema.json",
+      "description": "Extents along the world axes, metres."
+    },
+    "visible": {
+      "type": "boolean",
+      "description": "Whether the primitive is drawn."
+    },
+    "locked": {
+      "type": "boolean",
+      "description": "Whether the editor refuses to move it."
+    },
+    "fixed_base": {
+      "type": "boolean",
+      "description": "Whether physics treats it as fixed."
+    },
+    "color": {
+      "type": [
+        "string",
+        "array"
+      ],
+      "items": {
+        "type": "number"
+      },
+      "description": "A colour name or hex string, or a list of channel values."
+    },
+    "material": {
+      "type": [
+        "string",
+        "object"
+      ],
+      "additionalProperties": true,
+      "description": "A material name or a material description."
+    },
+    "style": {
+      "type": [
+        "object"
+      ],
+      "additionalProperties": true,
+      "description": "Rendering style hints."
+    },
+    "attach_to": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "The frame the primitive hangs off. Its rules stay with the platform."
+    },
+    "attach_offset": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Offset from that frame: position and rotation."
+    }
+  }
+}

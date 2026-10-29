@@ -42,6 +42,14 @@ def test_the_telemetry_contracts_are_topic_contracts() -> None:
     assert "topic" not in SELF_IDENTIFYING_KINDS
 
 
+#: The topic families a topic contract may live under: a twin's telemetry, and an
+#: environment's own notices.
+_TOPIC_PREFIXES = (
+    "cyberwave/twin/{twin_uuid}/",
+    "cyberwave/environment/{environment_uuid}/",
+)
+
+
 @pytest.mark.parametrize("contract", _TOPIC_CONTRACTS, ids=lambda c: c.id)
 def test_a_topic_contract_names_its_topic_and_no_identity_field(contract: Any) -> None:
     assert contract.id_field is None, (
@@ -49,8 +57,9 @@ def test_a_topic_contract_names_its_topic_and_no_identity_field(contract: Any) -
         "wire field its publishers do not send"
     )
     topic = contract.schema_json().get(TOPIC_ANNOTATION)
-    assert isinstance(topic, str) and topic.startswith("cyberwave/twin/{twin_uuid}/"), (
-        f"{contract.id} must name its twin topic in {TOPIC_ANNOTATION}"
+    assert isinstance(topic, str) and topic.startswith(_TOPIC_PREFIXES), (
+        f"{contract.id} must name its topic in {TOPIC_ANNOTATION}, under one of "
+        f"{_TOPIC_PREFIXES}"
     )
 
 

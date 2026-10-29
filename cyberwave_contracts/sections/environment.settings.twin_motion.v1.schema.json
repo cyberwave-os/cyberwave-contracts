@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.cyberwave.com/environment.settings.twin_motion.v1.schema.json",
+  "title": "Environment twin poses and movements",
+  "description": "Poses (keyframes) and movements (animations) saved at environment scope, keyed by twin uuid. A pose or movement is looked up by name, case-insensitively, trying the twin, then its asset, then the environment. Items stay open until the census shows which extra keys exist.",
+  "type": "object",
+  "additionalProperties": { "$ref": "#/$defs/twinMotion" },
+  "$defs": {
+    "twinMotion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keyframes": { "type": "array", "items": { "$ref": "#/$defs/keyframe" } },
+        "animations": { "type": "array", "items": { "$ref": "#/$defs/animation" } }
+      }
+    },
+    "keyframe": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "timestamp": { "type": "string", "description": "ISO 8601 time the pose was saved." },
+        "jointAngles": { "type": "object", "additionalProperties": { "type": "number" }, "description": "Joint name to angle." },
+        "joints": { "type": "object", "additionalProperties": { "type": "number" }, "description": "Legacy name for jointAngles; the backend still reads it." },
+        "description": { "type": "string" },
+        "scope": { "enum": ["environment", "twin", "asset"] }
+      }
+    },
+    "animation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "startKeyframe": { "type": "string" },
+        "endKeyframe": { "type": "string" },
+        "duration": { "type": "number", "minimum": 0, "description": "Seconds." },
+        "interpolation": { "enum": ["linear", "ease-in", "ease-out", "ease-in-out"] },
+        "timestamp": { "type": "string" },
+        "scope": { "enum": ["environment", "twin", "asset"] },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["keyframe", "transition_ms", "hold_ms"],
+            "properties": {
+              "keyframe": { "type": "string" },
+              "transition_ms": { "type": "number", "minimum": 0 },
+              "hold_ms": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
