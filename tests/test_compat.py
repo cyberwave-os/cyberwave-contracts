@@ -157,6 +157,10 @@ def test_recursive_definitions_terminate() -> None:
 
 _SECTION = "cyberwave-contracts/cyberwave_contracts/sections/demo.v1.schema.json"
 _PAYLOAD = "cyberwave-contracts/cyberwave_contracts/schemas/demo.v1.schema.json"
+_CONTRACT_IDS = (
+    "cyberwave-contracts/cyberwave_contracts/schemas/common.contract_id.v1.schema.json"
+)
+_IDS: dict[str, Any] = {"type": "string", "enum": ["a.v1", "b.v1"]}
 
 
 def _git(repo: Path, *args: str) -> None:
@@ -172,6 +176,7 @@ def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         path = tmp_path / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(_BASE))
+    (tmp_path / _CONTRACT_IDS).write_text(json.dumps(_IDS))
     _git(tmp_path, "add", ".")
     _git(tmp_path, "commit", "-q", "-m", "base")
     monkeypatch.chdir(tmp_path)
@@ -194,3 +199,23 @@ def test_a_removed_contract_file_is_reported(repo: Path) -> None:
 def test_a_compatible_tree_reports_nothing(repo: Path) -> None:
     (repo / _SECTION).write_text(json.dumps(_edit(properties__note={"type": "string"})))
     assert compare_with("base", repo) == {}
+
+
+def test_a_new_contract_id_is_not_a_break(repo: Path) -> None:
+    """A new contract adds its id to the generated vocabulary."""
+    (repo / _CONTRACT_IDS).write_text(
+        json.dumps({**_IDS, "enum": ["a.v1", "b.v1", "c.v1"]})
+    )
+    assert compare_with("base", repo) == {}
+
+
+def test_a_removed_contract_id_is_a_break(repo: Path) -> None:
+    (repo / _CONTRACT_IDS).write_text(json.dumps({**_IDS, "enum": ["a.v1"]}))
+    assert list(compare_with("base", repo)) == [_CONTRACT_IDS]
+
+
+def test_a_new_value_in_another_payload_enum_is_still_a_break(repo: Path) -> None:
+    (repo / _PAYLOAD).write_text(
+        json.dumps(_edit(properties__mode={"enum": ["a", "b", "c"]}))
+    )
+    assert list(compare_with("base", repo)) == [_PAYLOAD]

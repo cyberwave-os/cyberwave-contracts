@@ -52,7 +52,10 @@ SECTIONS_RELATIVE = f"{_PACKAGE_RELATIVE}/sections"
 #: Payload identity key spellings in use. ``version`` is the older spelling on the two
 #: manifest contracts and carries a contract id, not a version; it is listed so a
 #: third spelling cannot appear unnoticed, not because both are equally correct.
-ID_FIELDS = frozenset({"contract", "version", "schema_version"})
+#: ``topic`` is not a payload key at all: a reported-state telemetry message
+#: carries no contract id, and the MQTT topic it arrives on is what names its
+#: contract (the ``// Topic:`` header of its ``.proto``).
+ID_FIELDS = frozenset({"contract", "version", "schema_version", "topic"})
 
 #: Payloads identify their complete wire contract. Overlays constrain fields on
 #: another payload and deliberately do not add an identity field to that wire.

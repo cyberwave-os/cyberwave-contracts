@@ -36,6 +36,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from cyberwave_contracts._contract_ids import CONTRACT_ID
 from cyberwave_contracts.manifest import (
     SCHEMAS_DIR,
     SCHEMAS_RELATIVE,
@@ -250,6 +251,11 @@ def check(old: dict[str, Any], new: dict[str, Any], *, full: bool) -> list[str]:
 #: The trees checked, and whether each needs full compatibility.
 _TREES = {SCHEMAS_RELATIVE: True, SECTIONS_RELATIVE: False}
 
+#: Payload schemas checked backward only. The contract-id vocabulary is generated
+#: from the manifest, so every new contract adds an id to it; an old reader not
+#: knowing an id nobody sent it yet is not a break. Removing an id still is.
+_GROWING = {f"{SCHEMAS_RELATIVE}/{CONTRACT_ID}.schema.json"}
+
 
 def _git(*args: str) -> str:
     return subprocess.run(
@@ -274,7 +280,7 @@ def compare_with(base: str, root: Path) -> dict[str, list[str]]:
                 continue
             old = json.loads(_git("show", f"{base}:{path}"))
             new = json.loads(current.read_text(encoding="utf-8"))
-            if problems := check(old, new, full=full):
+            if problems := check(old, new, full=full and path not in _GROWING):
                 report[path] = problems
     return report
 

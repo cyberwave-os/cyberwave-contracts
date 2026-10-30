@@ -575,6 +575,36 @@ contracts:
     python_source: cyberwave-edge-runtime/runtime-services/intelligence/common/python/cyberwave_map_bundle/bundle.py
     mirrors: []
 
+  # Reported state: the first contract owned by common/protobuf, built on its
+  # state contracts (robot.v1.StateHeader, geometry.v1.Pose and Covariance6,
+  # robot.v1.PoseProvenance). A telemetry message carries no contract-id const;
+  # the MQTT topic it is published on is its identity, which is what
+  # `id_field: topic` records. The proto names that topic in its `// Topic:`
+  # header, and the golden payloads are
+  # common/protobuf/fixtures/mqtt/twin/v1/frame_poses.json (simulator) and
+  # frame_poses_hardware.json (odometry with covariance), which the SDK, the
+  # sim and the Pydantic model are tested against (common/protobuf/README.md).
+  - id: telemetry.frame_poses.v1
+    owner: backend
+    schema_owner: protobuf
+    id_field: topic
+    proto_source: common/protobuf/proto/cyberwave/mqtt/twin/v1/frame_poses.proto
+    # TwinFramePosesPayload, a Pydantic reading of the contract. Documentation
+    # only: nothing validates incoming messages with it.
+    python_source: cyberwave-backend/src/lib/mqtt_schemas.py
+    mirrors:
+      - path: cyberwave-sdks/cyberwave-python/cyberwave/mqtt/__init__.py
+        language: python
+        # publish_frame_poses; tests/test_publish_frame_poses.py checks it
+        # against both frame_poses fixtures.
+        sync: field_names
+      - path: cyberwave-sim/mqtt/state_egress.py
+        language: python
+        # _publish_frame_poses builds the payload itself, with substrate SIM
+        # and every frame GROUND_TRUTH; tests/test_state_egress.py checks it
+        # against the frame_poses fixture.
+        sync: field_names
+
   # --- Sections ---------------------------------------------------------------
   #
   # A section contract describes one part of a stored JSON field rather than a

@@ -33,6 +33,7 @@ class CommonContractIdV1(
             "simulation.runtime_audit.v1",
             "simulation.scene_bundle_manifest.v1",
             "simulation_policy_manifest.v1",
+            "telemetry.frame_poses.v1",
             "twin.command_response.v1",
         ]
     ]
