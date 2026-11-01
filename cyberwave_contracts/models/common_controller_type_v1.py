@@ -18,10 +18,11 @@ class CommonControllerTypeV1(
             "motion",
             "navigation",
             "freedrive",
+            "agentic",
         ]
     ]
 ):
     """Cyberwave Controller Type
 
-    What kind of thing drives a robot: generated code, a learned policy, a vision-language-action policy, a human operator in the browser or at the edge, a recorded motion, a navigation stack, or nothing at all (freedrive). The same eight values as the Django ControllerType choices and the protobuf ControllerType enum with its CONTROLLER_TYPE_ prefix removed and lower-cased. The frontend lets users configure only some of them. Not the same as `controller_family`, a metadata key that routing reads to tell controllers of one type apart.
+    What kind of thing drives a robot: generated code, a learned policy, a vision-language-action policy, a human operator in the browser or at the edge, a recorded motion, a navigation stack, an LLM agent that plans robot actions (agentic), or nothing at all (freedrive). The same nine values as the Django ControllerType choices and the protobuf ControllerType enum with its CONTROLLER_TYPE_ prefix removed and lower-cased. The frontend lets users configure only some of them. Not the same as `controller_family`, a metadata key that routing reads to tell controllers of one type apart.
     """
